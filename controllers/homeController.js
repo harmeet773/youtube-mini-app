@@ -32,4 +32,9 @@ console.log("API Response:", JSON.stringify(details, null, 2));
   res.render("home", { details });
 };
 
-module.exports = { index };
+const register = async (req, res) => {
+  // Send to view
+  res.render("register");
+};
+
+module.exports = { index,register };

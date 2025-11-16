@@ -11,21 +11,28 @@ const homeController = require('../controllers/homeController');
 router.get('/', homeController.index);
 
 // Register page
-router.get("/register", (req, res) => {
-  res.send("Register form here");
-});
+router.get("/register", homeController.register);
 
 // Register user
 router.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
+  try {
+    const { username, password } = req.body;
 
-  await runSql(
-    "INSERT INTO users (username, password) VALUES (?, ?)",
-    [username, hashed]
-  );
+    // Hash the password
+    const hashed = await bcrypt.hash(password, 10);
 
-  res.send("User registered");
+    // Insert user into DB
+    await runSql(
+      "INSERT INTO users (username, password) VALUES (?, ?)",
+      [username, hashed]
+    );
+
+    // Redirect to dashboard
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error registering user");
+  }
 });
 
 // Login page
