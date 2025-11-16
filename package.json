@@ -1,0 +1,38 @@
+{
+  "name": "express-ejs-boilerplate",
+  "version": "1.0.0",
+  "description": "\"# Express-ejs-Boilerplate\"",
+  "homepage": "https://github.com/harmeet773/Express-ejs-Boilerplate#readme",
+  "bugs": {
+    "url": "https://github.com/harmeet773/Express-ejs-Boilerplate/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harmeet773/Express-ejs-Boilerplate.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.2",
+    "mysql2": "^3.15.3",
+    "nodemon": "^3.1.11",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "sequelize": "^6.37.7"
+  }
+}

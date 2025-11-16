@@ -1,0 +1,16 @@
+<h1>syntax of ejs</h1>
+
+<% let name  = "Mehul" %>
+<title><%= title %></title>
+
+
+<%- include('partials/topbar') %>
+
+<p>My name is <%= name %></p>
+
+<%  const fruits = ["Apple", "Banana", "Orange"]; %>
+<ul>
+  <% for (let fruit of fruits) { %>
+    <li><%= fruit %></li>
+  <% } %>
+</ul>

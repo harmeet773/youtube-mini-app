@@ -1,0 +1,42 @@
+<% /* Home page showing YouTube-like interface */ %>
+<% let title = "Home" %>
+<title><%= title %></title>
+
+<div class="container py-5">
+  <h1 class="mb-4">My uploaded video is:</h1>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <iframe class="card-img-top" width="100%" height="400" 
+          src="https://www.youtube.com/embed/<%= details.items[0].id %>" 
+          frameborder="0" allowfullscreen>
+        </iframe>
+        <div class="card-body">
+          <h5 class="card-title"><%= details.items[0].snippet.title %></h5>
+          <p class="card-text"><%= details.items[0].snippet.description %></p>
+          <p>
+            <span class="me-3"><strong>Views:</strong> <%= details.items[0].statistics.viewCount %></span>
+            <span class="me-3"><strong>Likes:</strong> <%= details.items[0].statistics.likeCount %></span>
+            <span><strong>Comments:</strong> <%= details.items[0].statistics.commentCount %></span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <ul class="list-group">
+        <% details.items.forEach(function(video, index){ %>
+          <% if(index !== 0){ %>
+            <li class="list-group-item">
+              <a href="/video/<%= video.id %>">
+                <img src="<%= video.snippet.thumbnails.default.url %>" alt="thumbnail" class="me-2" />
+                <%= video.snippet.title %>
+              </a>
+            </li>
+          <% } %>
+        <% }); %>
+      </ul>
+    </div>
+  </div>
+</div>
