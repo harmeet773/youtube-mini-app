@@ -5,9 +5,12 @@ const passport = require("passport");
 const { runSql } = require("../config/db");
 const homeController = require('../controllers/homeController');
 
-// Routes
+// -------------------- Existing Routes --------------------
+
+// Home page
 router.get('/', homeController.index);
 
+// Register page
 router.get("/register", (req, res) => {
   res.send("Register form here");
 });
@@ -30,7 +33,7 @@ router.get("/login", (req, res) => {
   res.send("Login form here");
 });
 
-// Login user
+// Login user (local)
 router.post(
   "/login",
   passport.authenticate("local", {
@@ -57,11 +60,26 @@ function ensureAuth(req, res, next) {
   res.redirect("/login");
 }
 
-//router.get('/users', homeController.users);
+// -------------------- GOOGLE AUTH ROUTES --------------------
 
+// Redirect to Google for authentication
+router.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email", "https://www.googleapis.com/auth/youtube.force-ssl"],
+    accessType: "offline",
+    prompt: "consent",
+  })
+);
 
-
-
-
+// Google callback
+router.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res) => {
+    // Successful login
+    res.redirect("/dashboard");
+  }
+);
 
 module.exports = router;
