@@ -1,42 +1,391 @@
-<% /* Home page showing YouTube-like interface */ %>
+<% /* Home page showing YouTube-like interface (AJAX-enabled) */ %>
 <% let title = "Home" %>
 <title><%= title %></title>
 
+<style>
+  .comment-row { display: flex; gap: 12px; align-items: flex-start; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+  .comment-body { flex: 1; }
+  .comment-meta { color: #606060; font-size: 13px; margin-bottom: 6px; }
+  .comment-text { font-size: 15px; margin-bottom: 8px; white-space: pre-wrap; }
+  .dot-menu { position: relative; }
+  .dot-menu-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: #606060; }
+  .menu-panel { position: absolute; right: 0; top: 22px; background: #fff; border: 1px solid #e6e6e6; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 4px; z-index: 50; display: none; min-width: 120px; }
+  .menu-panel.show { display: block; }
+  .menu-panel button { display:block; width:100%; text-align:left; padding:8px 12px; border: none; background: transparent; cursor:pointer; }
+  .menu-panel button:hover { background:#f5f5f5; }
+  .reply-box, .edit-box { display:none; margin-top:8px; }
+  .small-avatar { width:32px; height:32px; border-radius:50%; object-fit:cover; }
+  .reply-row { margin-left: 52px; margin-top:8px; }
+  .comment-footer { display:flex; align-items:center; gap:10px; }
+  #comments-list { margin-top: 12px; }
+  #posting-spinner { display:none; margin-left:8px; }
+</style>
+
+<% if (user) { %>
+  <div style="position: absolute; right: 20px; top: 12px;">
+    <% if (user.photos && user.photos[0] && user.photos[0].value) { %>
+      <img src="<%= user.photos[0].value %>" alt="me" class="avatar" style="width:36px;height:36px;" />
+    <% } else { %>
+      <div class="avatar" style="background:#ddd"></div>
+    <% } %>
+  </div>
+<% } %>
+
 <div class="container py-5">
-  <h1 class="mb-4">My uploaded video is:</h1>
+  <h1 class="mb-4">My Youtube Videos are - </h1>
 
   <div class="row">
     <div class="col-md-8">
       <div class="card mb-4">
-        <iframe class="card-img-top" width="100%" height="400" 
-          src="https://www.youtube.com/embed/<%= details.items[0].id %>" 
+        <iframe class="card-img-top" width="100%" height="400"
+          src="https://www.youtube.com/embed/<%= video.items[0].id %>"
           frameborder="0" allowfullscreen>
         </iframe>
+
         <div class="card-body">
-          <h5 class="card-title"><%= details.items[0].snippet.title %></h5>
-          <p class="card-text"><%= details.items[0].snippet.description %></p>
+          <h5 class="card-title"><%= video.items[0].snippet.title %></h5>
+          <p class="card-text"><%= video.items[0].snippet.description %></p>
+
           <p>
-            <span class="me-3"><strong>Views:</strong> <%= details.items[0].statistics.viewCount %></span>
-            <span class="me-3"><strong>Likes:</strong> <%= details.items[0].statistics.likeCount %></span>
-            <span><strong>Comments:</strong> <%= details.items[0].statistics.commentCount %></span>
+            <span class="me-3"><strong>Views:</strong> <%= video.items[0].statistics.viewCount %></span>
+            <span class="me-3"><strong>Likes:</strong> <%= video.items[0].statistics.likeCount %></span>
+            <span><strong>Comments:</strong> <%= video.items[0].statistics.commentCount %></span>
           </p>
         </div>
       </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h4>Comments</h4>
+
+          <% if (comments.length === 0) { %>
+            <p>No comments yet.</p>
+          <% } %>
+
+          <% if (user) { %>
+            <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:12px;">
+              <% if (user.photos && user.photos[0] && user.photos[0].value) { %>
+                <img src="<%= user.photos[0].value %>" alt="me" class="small-avatar">
+              <% } else { %>
+                <div class="small-avatar" style="background:#ddd"></div>
+              <% } %>
+
+              <form id="add-comment-form" style="flex:1;">
+                <input type="hidden" name="videoId" value="<%= video.items[0].id %>">
+                <textarea name="commentText" class="form-control" rows="3" placeholder="Add a public comment..." required></textarea>
+                <div style="margin-top:8px;">
+                  <button class="btn btn-primary" type="submit">Comment</button>
+                  <span id="posting-spinner">Posting...</span>
+                </div>
+              </form>
+            </div>
+          <% } else { %>
+            <div class="alert alert-warning">Please <a href="/auth/google">login with Google</a> to add comments.</div>
+          <% } %>
+
+          <div id="comments-list">
+            <% comments.forEach(c => { %>
+              <% let top = c.snippet.topLevelComment.snippet; %>
+              <div class="mb-4 comment-container" data-comment-id="<%= c.snippet.topLevelComment.id %>">
+                <div class="comment-row">
+                  <div>
+                    <img src="<%= top.authorProfileImageUrl %>" alt="avatar" class="avatar">
+                  </div>
+                  <div class="comment-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <strong><%= top.authorDisplayName %></strong>
+                        <div class="comment-meta"><%= new Date(top.publishedAt).toLocaleString() %></div>
+                      </div>
+                      <div class="dot-menu">
+                        <button class="dot-menu-btn" aria-label="menu">&#8942;</button>
+                        <div class="menu-panel" aria-hidden="true">
+                          <button class="menu-edit">Edit</button>
+                          <button class="menu-delete">Delete</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comment-text" data-text><%= top.textDisplay %></div>
+
+                    <div class="edit-box">
+                      <form action="/edit-comment" method="POST" class="edit-form d-flex" style="gap:8px;">
+                        <input type="hidden" name="commentId" value="<%= c.snippet.topLevelComment.id %>">
+                        <textarea name="newText" rows="3" class="form-control" required></textarea>
+                        <div style="display:flex;flex-direction:column;gap:6px;margin-left:8px;">
+                          <button class="btn btn-sm btn-primary" type="submit">Save</button>
+                          <button type="button" class="btn btn-sm btn-light btn-cancel-edit">Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+
+                    <div class="comment-footer mt-2">
+                      <button class="btn btn-sm btn-primary btn-reply-toggle">Reply</button>
+                    </div>
+
+                    <div class="reply-box">
+                      <form action="/reply-comment" method="POST" class="reply-form d-flex" style="gap:8px;align-items:flex-start;">
+                        <input type="hidden" name="parentId" value="<%= c.snippet.topLevelComment.id %>">
+                        <% if (user && user.photos && user.photos[0] && user.photos[0].value) { %>
+                          <img src="<%= user.photos[0].value %>" alt="me" class="small-avatar">
+                        <% } else { %>
+                          <div class="small-avatar" style="background:#ddd"></div>
+                          
+                        <% } %>
+                        <textarea name="replyText" class="form-control" rows="2" placeholder="Add a public reply..." required></textarea>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                          <button class="btn btn-sm btn-primary" type="submit">Reply</button>
+                          <button type="button" class="btn btn-sm btn-light btn-cancel-reply">Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+
+                    <% if (c.replies && c.replies.comments) { %>
+                      <div class="mt-3">
+                        <% c.replies.comments.forEach(r => { %>
+                          <div class="reply-row" data-comment-id="<%= r.id %>">
+                            <div class="comment-row">
+                              <div>
+                                <img src="<%= r.snippet.authorProfileImageUrl %>" alt="avatar" class="avatar" style="width:32px;height:32px;">
+                              </div>
+                              <div class="comment-body">
+                                <div class="d-flex justify-content-between">
+                                  <div>
+                                    <strong><%= r.snippet.authorDisplayName %></strong>
+                                    <div class="comment-meta"><%= new Date(r.snippet.publishedAt).toLocaleString() %></div>
+                                  </div>
+                                  <div class="dot-menu">
+                                    <button class="dot-menu-btn" aria-label="menu">&#8942;</button>
+                                    <div class="menu-panel" aria-hidden="true">
+                                      <button class="menu-edit">Edit</button>
+                                      <button class="menu-delete">Delete</button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="comment-text" data-text><%= r.snippet.textDisplay %></div>
+
+                                <div class="edit-box">
+                                  <form action="/edit-comment" method="POST" class="edit-form d-flex" style="gap:8px;">
+                                    <input type="hidden" name="commentId" value="<%= r.id %>">
+                                    <textarea name="newText" rows="3" class="form-control" required></textarea>
+                                    <div style="display:flex;flex-direction:column;gap:6px;margin-left:8px;">
+                                      <button class="btn btn-sm btn-primary" type="submit">Save</button>
+                                      <button type="button" class="btn btn-sm btn-light btn-cancel-edit">Cancel</button>
+                                    </div>
+                                  </form>
+                                </div>
+
+                                <div class="comment-footer mt-2">
+                                  <button class="btn btn-sm btn-primary btn-reply-toggle">Reply</button>
+                                </div>
+
+                                <div class="reply-box">
+                                  <form action="/reply-comment" method="POST" class="reply-form d-flex" style="gap:8px;align-items:flex-start;">
+                                    <input type="hidden" name="parentId" value="<%= r.id %>">
+                                    <% if (user && user.photos && user.photos[0] && user.photos[0].value) { %>
+                                      <img src="<%= user.photos[0].value %>" alt="me" class="small-avatar">
+                                    <% } else { %>
+                                      <div class="small-avatar" style="background:#ddd"></div>
+                                    <% } %>
+                                    <textarea name="replyText" class="form-control" rows="2" placeholder="Add a public reply..." required></textarea>
+                                    <div style="display:flex;flex-direction:column;gap:6px;">
+                                      <button class="btn btn-sm btn-primary" type="submit">Reply</button>
+                                      <button type="button" class="btn btn-sm btn-light btn-cancel-reply">Cancel</button>
+                                    </div>
+                                  </form>
+                                </div>
+
+                              </div>
+                            </div>
+                          </div>
+                        <% }); %>
+                      </div>
+                    <% } %>
+
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="col-md-4">
       <ul class="list-group">
-        <% details.items.forEach(function(video, index){ %>
+        <% video.items.forEach(function(v, index){ %>
           <% if(index !== 0){ %>
             <li class="list-group-item">
-              <a href="/video/<%= video.id %>">
-                <img src="<%= video.snippet.thumbnails.default.url %>" alt="thumbnail" class="me-2" />
-                <%= video.snippet.title %>
+              <a href="/video/<%= v.id %>">
+                <img src="<%= v.snippet.thumbnails.default.url %>" alt="thumbnail" class="me-2" />
+                <%= v.snippet.title %>
               </a>
             </li>
           <% } %>
         <% }); %>
       </ul>
     </div>
+
   </div>
 </div>
+
+<script>
+async function postJson(url, data) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({ error: res.statusText }));
+    throw err;
+  }
+  return res.json();
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// Close menus
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dot-menu')) {
+    document.querySelectorAll('.menu-panel').forEach(p => p.classList.remove('show'));
+  }
+});
+
+// Open dot menu
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.dot-menu-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  const panel = btn.nextElementSibling;
+  document.querySelectorAll('.menu-panel').forEach(p => { if (p !== panel) p.classList.remove('show'); });
+  panel.classList.toggle('show');
+});
+
+// Edit Comment
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('menu-edit')) {
+    const block = e.target.closest('[data-comment-id]') || e.target.closest('.reply-row');
+    const editBox = block.querySelector('.edit-box');
+    const textDiv = block.querySelector('[data-text]');
+    const textarea = editBox.querySelector('textarea');
+    textarea.value = textDiv.innerText.trim();
+    textDiv.style.display = 'none';
+    editBox.style.display = 'block';
+    e.target.closest('.menu-panel').classList.remove('show');
+  }
+});
+
+// Delete Comment
+document.addEventListener('click', async function(e) {
+  if (!e.target.classList.contains('menu-delete')) return;
+
+  const block = e.target.closest('[data-comment-id]') || e.target.closest('.reply-row');
+  const commentId = block.getAttribute('data-comment-id');
+  e.target.closest('.menu-panel').classList.remove('show');
+
+  if (!confirm('Delete this comment?')) return;
+
+  try {
+    await postJson('/delete-comment', { commentId });
+    block.remove();
+  } catch (err) {
+    alert(err.error || 'Failed to delete comment');
+  }
+});
+
+// Cancel Edit
+document.addEventListener('click', function(e) {
+  if (!e.target.classList.contains('btn-cancel-edit')) return;
+  const editBox = e.target.closest('.edit-box');
+  const textDiv = editBox.closest('[data-comment-id]')?.querySelector('[data-text]');
+  editBox.style.display = 'none';
+  textDiv.style.display = 'block';
+});
+
+// Reply Toggle
+document.addEventListener('click', function(e) {
+  if (!e.target.classList.contains('btn-reply-toggle')) return;
+  const container = e.target.closest('[data-comment-id]') || e.target.closest('.reply-row');
+  const replyBox = container.querySelector('.reply-box');
+  replyBox.style.display = replyBox.style.display === 'block' ? 'none' : 'block';
+});
+
+// Cancel Reply
+document.addEventListener('click', e => {
+  if (!e.target.classList.contains('btn-cancel-reply')) return;
+  e.target.closest('.reply-box').style.display = 'none';
+});
+
+// Edit Submit
+document.addEventListener('submit', async function(ev) {
+  const form = ev.target;
+  if (!form.classList.contains('edit-form')) return;
+
+  ev.preventDefault();
+  const formData = new FormData(form);
+  const commentId = formData.get('commentId');
+  const newText = formData.get('newText');
+
+  try {
+    await postJson('/edit-comment', { commentId, newText });
+
+    const block = form.closest('[data-comment-id]');
+    block.querySelector('[data-text]').innerText = newText;
+
+    form.closest('.edit-box').style.display = 'none';
+    block.querySelector('[data-text]').style.display = 'block';
+
+  } catch (err) {
+    alert(err.error || 'Failed to save edit');
+  }
+});
+
+// Reply Submit
+document.addEventListener('submit', async function(ev) {
+  const form = ev.target;
+  if (!form.classList.contains('reply-form')) return;
+
+  ev.preventDefault();
+  const fd = new FormData(form);
+  const parentId = fd.get('parentId');
+  const replyText = fd.get('replyText').trim();
+
+  if (!replyText) return;
+
+  try {
+    const res = await postJson('/reply-comment', { parentId, replyText });
+
+    if (res && res.reply) {
+      location.reload(); 
+    }
+  } catch (err) {
+    alert(err.error || 'Failed to reply');
+  }
+});
+
+// Add Comment Submit
+const addForm = document.getElementById('add-comment-form');
+if (addForm) {
+  addForm.addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    const fd = new FormData(addForm);
+    const videoId = fd.get('videoId');
+    const commentText = fd.get('commentText').trim();
+
+    if (!commentText) return alert('Comment cannot be empty');
+
+    try {
+      await postJson('/add-comment', { videoId, commentText });
+      location.reload();
+    } catch (err) {
+      alert(err.error || 'Failed to post comment');
+    }
+  });
+}
+</script>

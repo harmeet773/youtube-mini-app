@@ -1,58 +1,24 @@
+const axios = require("axios");
 const express = require('express');
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
 const { runSql } = require("../config/db");
-const homeController = require('../controllers/homeController');
+const homeController = require('../controllers/homeController');   
 
 // -------------------- Existing Routes --------------------
 
 // Home page
-router.get('/', homeController.index);
+router.get('/', homeController.index );
 
-// Register page
-router.get("/register", homeController.register);
 
-// Register user
-router.post("/register", async (req, res) => {
-  try {
-    const { username, password } = req.body;
 
-    // Hash the password
-    const hashed = await bcrypt.hash(password, 10);
+router.post("/reply-comment", homeController.addReply );
 
-    // Insert user into DB
-    await runSql(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
-      [username, hashed]
-    );
 
-    // Redirect to dashboard
-    res.redirect("/dashboard");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error registering user");
-  }
-});
-
-// Login page
-router.get("/login", (req, res) => {
-  res.send("Login form here");
-});
-
-// Login user (local)
-router.post(
-  "/login",
-  passport.authenticate("local", {
-    successRedirect: "/dashboard",
-    failureRedirect: "/login",
-  })
-);
 
 // Protected route
-router.get("/dashboard", ensureAuth, (req, res) => {
-  res.send("Welcome, " + req.user.username);
-});
+//router.get("/dashboard", ensureAuth, homeController.index );
 
 // Logout
 router.get("/logout", (req, res) => {
@@ -64,7 +30,7 @@ router.get("/logout", (req, res) => {
 // Middleware to check login
 function ensureAuth(req, res, next) {
   if (req.isAuthenticated()) return next();
-  res.redirect("/login");
+  res.redirect("/");
 }
 
 // -------------------- GOOGLE AUTH ROUTES --------------------
@@ -73,20 +39,30 @@ function ensureAuth(req, res, next) {
 router.get(
   "/auth/google",
   passport.authenticate("google", {
-    scope: ["profile", "email", "https://www.googleapis.com/auth/youtube.force-ssl"],
-    accessType: "offline",
-    prompt: "consent",
-  })
+    scope: [
+      "email",
+      "profile",
+      "https://www.googleapis.com/auth/youtube.force-ssl",
+      "https://www.googleapis.com/auth/youtube"
+    ],
+    accessType: "offline", 
+    prompt: "consent"
+  })  
 );
 
-// Google callback
+
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
-    // Successful login
-    res.redirect("/dashboard");
+    res.redirect("/");
   }
 );
+
+router.get("/about", homeController.about);
+
+router.post("/delete-comment", homeController.deleteComment);
+router.post("/edit-comment", homeController.editComment);
+router.post("/add-comment", homeController.addComment);
 
 module.exports = router;

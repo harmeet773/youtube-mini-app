@@ -4,8 +4,11 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const bcrypt = require("bcryptjs");
 const { runSql } = require("./db");
 
+
+
+
 // ------------------- LOCAL STRATEGY -------------------
-passport.use(
+/* passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
       const { success, result } = await runSql(
@@ -28,60 +31,71 @@ passport.use(
     }
   })
 );
-
+*/
 // ------------------- GOOGLE STRATEGY -------------------
+
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback",
-      scope: ["profile", "email", "https://www.googleapis.com/auth/youtube.force-ssl"],
+      callbackURL: "/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Check if user already exists
-        const { result } = await runSql(
+        const googleId = profile.id;
+        const email = profile.emails?.[0]?.value || null;
+
+        // Check if user exists
+        const existing = await runSql(
           "SELECT * FROM users WHERE google_id = ?",
-          [profile.id]
+          [googleId]
         );
 
-        if (result.length > 0) {
-          // Update tokens
+        if (existing.result.length > 0) {
           await runSql(
             "UPDATE users SET access_token = ?, refresh_token = ? WHERE google_id = ?",
-            [accessToken, refreshToken, profile.id]
+            [accessToken, refreshToken, googleId]
           );
-          return done(null, result[0]);
+          return done(null, existing.result[0]);
         }
 
-        // Insert new user
-        const username = profile.emails[0].value;
-        const { result: newUser } = await runSql(
+        // Create new user (we ignore insertId)
+        await runSql(
           "INSERT INTO users (username, google_id, access_token, refresh_token) VALUES (?, ?, ?, ?)",
-          [username, profile.id, accessToken, refreshToken]
+          [email, googleId, accessToken, refreshToken]
         );
 
-        const { result: createdUser } = await runSql(
-          "SELECT * FROM users WHERE id = ?",
-          [newUser.insertId]
+        // Fetch the inserted user using google_id
+        const created = await runSql(
+          "SELECT * FROM users WHERE google_id = ?",
+          [googleId]
         );
 
-        return done(null, createdUser[0]);
+        if (!created.result.length) {
+          return done(new Error("User insert failed — no user found"));
+        }
+
+        return done(null, created.result[0]);
+
       } catch (err) {
         return done(err);
-      }
+      }    
     }
   )
 );
 
-// ------------------- SESSION -------------------
-passport.serializeUser((user, done) => done(null, user.id));
+// ------------------- SESSION HANDLING -------------------
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const { result } = await runSql("SELECT * FROM users WHERE id = ?", [id]);
-    done(null, result[0]);
+    const data = await runSql("SELECT * FROM users WHERE id = ?", [id]);
+    const rows = data.result || [];
+    done(null, rows[0]);
   } catch (err) {
     done(err);
   }
