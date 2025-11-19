@@ -51,21 +51,14 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-
-      // placeholder — real URL made dynamically on each request
-      callbackURL: "/auth/google/callback",
-      passReqToCallback: true,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL, // use environment variable
     },
-    async (req, accessToken, refreshToken, profile, done) => {
+    async (accessToken, refreshToken, profile, done) => {
       try {
-        // Generate the callback URL dynamically
-        const callbackURL = getDynamicCallbackURL(req);
-        console.log("Dynamic Callback URL →", callbackURL);
-
         const googleId = profile.id;
         const email = profile.emails?.[0]?.value || null;
 
-        // Check user
+        // Check if user exists
         const existing = await runSql(
           "SELECT * FROM users WHERE google_id = ?",
           [googleId]
@@ -90,9 +83,7 @@ passport.use(
           [googleId]
         );
 
-        if (!created.result.length) {
-          return done(new Error("User insert failed"));
-        }
+        if (!created.result.length) return done(new Error("User insert failed"));
 
         return done(null, created.result[0]);
       } catch (err) {
