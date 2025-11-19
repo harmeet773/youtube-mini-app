@@ -33,16 +33,22 @@ const { runSql } = require("./db");
 );
 */
 // ------------------- GOOGLE STRATEGY -------------------
-
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback"
+      callbackURL: "/auth/google/callback", // placeholder, actual URL handled below
+      passReqToCallback: true, // important to get req object
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
       try {
+        // Dynamically construct callback URL
+        const protocol = req.protocol;
+        const host = req.get("host");
+        const callbackURL = `${protocol}://${host}/auth/google/callback`;
+        console.log("Using callback URL:", callbackURL);
+
         const googleId = profile.id;
         const email = profile.emails?.[0]?.value || null;
 
@@ -60,13 +66,12 @@ passport.use(
           return done(null, existing.result[0]);
         }
 
-        // Create new user (we ignore insertId)
+        // Create new user
         await runSql(
           "INSERT INTO users (username, google_id, access_token, refresh_token) VALUES (?, ?, ?, ?)",
           [email, googleId, accessToken, refreshToken]
         );
 
-        // Fetch the inserted user using google_id
         const created = await runSql(
           "SELECT * FROM users WHERE google_id = ?",
           [googleId]
@@ -77,10 +82,9 @@ passport.use(
         }
 
         return done(null, created.result[0]);
-
       } catch (err) {
         return done(err);
-      }    
+      }
     }
   )
 );
