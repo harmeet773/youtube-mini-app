@@ -33,26 +33,39 @@ const { runSql } = require("./db");
 );
 */
 // ------------------- GOOGLE STRATEGY -------------------
+
+function getDynamicCallbackURL(req) {
+  const host = req.get("host");
+
+  // If the domain includes "localhost" → use http
+  if (host.includes("localhost")) {
+    return `http://${host}/auth/google/callback`;
+  }
+
+  // Otherwise → force https for production
+  return `https://${host}/auth/google/callback`;
+}
+
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback", // placeholder, actual URL handled below
-      passReqToCallback: true, // important to get req object
+
+      // placeholder — real URL made dynamically on each request
+      callbackURL: "/auth/google/callback",
+      passReqToCallback: true,
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
-        // Dynamically construct callback URL
-        const protocol = req.protocol;
-        const host = req.get("host");
-        const callbackURL = `${protocol}://${host}/auth/google/callback`;
-        console.log("Using callback URL:", callbackURL);
+        // Generate the callback URL dynamically
+        const callbackURL = getDynamicCallbackURL(req);
+        console.log("Dynamic Callback URL →", callbackURL);
 
         const googleId = profile.id;
         const email = profile.emails?.[0]?.value || null;
 
-        // Check if user exists
+        // Check user
         const existing = await runSql(
           "SELECT * FROM users WHERE google_id = ?",
           [googleId]
@@ -66,7 +79,7 @@ passport.use(
           return done(null, existing.result[0]);
         }
 
-        // Create new user
+        // Insert new user
         await runSql(
           "INSERT INTO users (username, google_id, access_token, refresh_token) VALUES (?, ?, ?, ?)",
           [email, googleId, accessToken, refreshToken]
@@ -78,7 +91,7 @@ passport.use(
         );
 
         if (!created.result.length) {
-          return done(new Error("User insert failed — no user found"));
+          return done(new Error("User insert failed"));
         }
 
         return done(null, created.result[0]);
@@ -88,7 +101,6 @@ passport.use(
     }
   )
 );
-
 // ------------------- SESSION HANDLING -------------------
 
 passport.serializeUser((user, done) => {
