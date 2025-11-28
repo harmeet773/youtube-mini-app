@@ -40,10 +40,11 @@ router.get(
   "/auth/google",
   passport.authenticate("google", {
     scope: [
-      "email",
-      "profile",
-      "https://www.googleapis.com/auth/youtube.force-ssl",
-      "https://www.googleapis.com/auth/youtube"
+      "email",  // gives email address and Verified/unverified status
+      "profile", // gives you Name, Profile picture ,Google ID
+      // it is Highest-level YouTube permission, 
+      "https://www.googleapis.com/auth/youtube.force-ssl", // Post comments ,  Delete comments , Manage comment threads , View private YouTube data
+      //"https://www.googleapis.com/auth/youtube" //  View YouTube account , View videos , View playlists ,iew subscriptions (if allowed)
     ],
     accessType: "offline", 
     prompt: "consent"
