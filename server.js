@@ -12,6 +12,9 @@ const app = express();
 // =============================
 // Session middleware
 // =============================
+// secret -  This is used to sign the session ID cookie. 
+// resave: false - This means do not save the session to the session store if it wasn’t modified.
+// saveUninitialized: false - This means do not create a session until something is stored in session.
 app.use(
   session({
     secret: "psupersecretkey",
@@ -24,13 +27,15 @@ app.use(
 // Passport middleware
 // =============================
 app.use(passport.initialize());
+// here we are using passport sessions middleware. now passport will can create login sessions.
 app.use(passport.session());
+
 
 // =============================
 // Body parsers
 // =============================
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); 
 
 // =============================
 // Static assets

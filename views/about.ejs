@@ -17,8 +17,35 @@
 </ol>
 
 </div>
+  
 
-
-
-
-The app is using passport.js for aut
+The app is using passport.js for authentication. In this app we have implemented Google OAuth 2.0 strategy for passport.js.
+<br />
+In this app , passport.js is using sessions to keep track of logged in users. We are serializing user information into the session and deserializing it on subsequent requests.
+Passport also supports JWT or sessionless authentication.
+<br />
+Below is the workflow of how passport.js Google OAuth 2.0 strategy is working in this app:
+<br />
+<ol>
+  <li>
+    When user clicks on "Login with Google" button, the app redirects user to Google OAuth 2.0 authorization endpoint.
+  </li>
+  <li>
+    User logs in with Google credentials and grants permissions to the app for requested scopes.
+  </li>
+  <li>
+    Google redirects user back to the app with an authorization code.
+  </li>
+  <li>
+    The app exchanges the authorization code for access token and refresh token from Google OAuth 2.0 token endpoint.
+  </li>
+  <li>
+    Passport.js serializes user information into the session.
+  </li>
+  <li>
+    On subsequent requests, passport.js deserializes user information from the session. And req.user is populated with the authenticated user's info.
+  </li>
+  <li>
+    The app can now use the access token to make authorized API requests on behalf of the user.
+  </li>
+</ol>
