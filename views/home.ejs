@@ -46,7 +46,6 @@
         <div class="card-body">
           <h5 class="card-title"><%= video.items[0].snippet.title %></h5>
           <p class="card-text"><%= video.items[0].snippet.description %></p>
-
           <p>
             <span class="me-3"><strong>Views:</strong> <%= video.items[0].statistics.viewCount %></span>
             <span class="me-3"><strong>Likes:</strong> <%= video.items[0].statistics.likeCount %></span>
@@ -54,11 +53,9 @@
           </p>
         </div>
       </div>
-
       <div class="card mb-4">
         <div class="card-body">
           <h4>Comments</h4>
-
           <% if (comments.length === 0) { %>
             <p>No comments yet.</p>
           <% } %>

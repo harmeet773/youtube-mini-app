@@ -15,8 +15,6 @@ if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequ
      port: process.env.DB_PORT,
   }   
 );   
-
-
 }else{
  sequelize = new Sequelize(
   process.env.DB_NAME,

@@ -11,7 +11,7 @@ const homeController = require('../controllers/homeController');
 // Home page
 router.get('/', homeController.index );
 
-
+  
 
 router.post("/reply-comment", homeController.addReply );
 
@@ -61,7 +61,6 @@ router.get(
 );
 
 router.get("/about", homeController.about);
-
 router.post("/delete-comment", homeController.deleteComment);
 router.post("/edit-comment", homeController.editComment);
 router.post("/add-comment", homeController.addComment);

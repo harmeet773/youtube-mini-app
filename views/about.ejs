@@ -1,12 +1,10 @@
 
 <div class="container mt-4">
   <h4 class="mb-3">About <em>"Harmeet's Youtube"</em></h4>
-
   <p>
     The app is using <strong> Api Key </strong> from
     <strong>YouTube Data API v3</strong> for fetching public content from my youtube account.
   </p>
-
   <p>
     It is using <strong>OAuth Client</strong> for authenticating users so that the app can get access for following scopes:
   </p>
@@ -15,13 +13,12 @@
   <li>profile</li>
   <li>https://www.googleapis.com/auth/youtube.force-ssl</li>
 </ol>
-
 </div>
   
 
-The app is using passport.js for authentication. In this app we have implemented Google OAuth 2.0 strategy for passport.js.
+In this app Google OAuth 2.0 is implemented using passport.js . 
 <br />
-In this app , passport.js is using sessions to keep track of logged in users. We are serializing user information into the session and deserializing it on subsequent requests.
+In this app , passport.js is using sessions( and not tokens) to keep track of logged in users. We are serializing user information into the session and deserializing it on subsequent requests.
 Passport also supports JWT or sessionless authentication.
 <br />
 Below is the workflow of how passport.js Google OAuth 2.0 strategy is working in this app:
@@ -49,5 +46,22 @@ Below is the workflow of how passport.js Google OAuth 2.0 strategy is working in
     The app can now use the access token to make authorized API requests on behalf of the user.
   </li>
 </ol>
+<p>
+Passport.js is used because it makes authentication easy and secure by handling sessions, login state, and user management automatically. It supports many authentication methods like local login, Google, GitHub, and more, while integrating cleanly with Express. This removes the need to write complex authentication logic yourself and keeps your code simple and organized.
+</p>
+passport.js adds quite a few number of methods in req object such as 
+1. req.login(user, callback) - it logs the user in ( creates a session ) and Calls serializeUser() internally.
+2. req.logout(callback) - Logs the user OUT (destroys the login session).
+3. req.isAuthenticated() - Checks whether the user is currently logged in. return true if session exists .
+4. req.user - gives the object returned by passport.deserializeUser .
+passport.js also creates the following object 
+<pre><code>
+  req.session.passport = {
+  user: <id returned by serializeUser>
+};
+</code>
+</pre>
 
-The project also uses Sequelize , which is an ORM . The project uses run raw SQL queries using sequelize.query() .
+
+
+The project also uses Sequelize , which is an ORM . The project executes raw SQL queries using sequelize.query() .
