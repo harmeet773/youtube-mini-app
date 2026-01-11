@@ -4,7 +4,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
 const { runSql } = require("../config/db");
-const homeController = require('../controllers/homeController');   
+const homeController = require('../controllers/homeController');       
 
 // -------------------- Existing Routes --------------------
 

@@ -3,13 +3,11 @@ const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
 const path = require("path");
-
 require("./config/passport");      // <-- loads our raw SQL passport config
 require("./config/initTables");    // <-- creates MySQL tables from code
-
 const app = express();
 
-// =============================
+// =============================   
 // Session middleware
 // =============================
 // secret -  This is used to sign the session ID cookie. 
