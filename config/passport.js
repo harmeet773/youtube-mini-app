@@ -1,8 +1,8 @@
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const bcrypt = require("bcryptjs");
-const { runSql } = require("./db");
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import bcrypt from "bcryptjs";
+import { runSql } from "./db.js";
 
 
 
@@ -108,4 +108,4 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-module.exports = passport;
+export default passport;

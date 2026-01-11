@@ -1,10 +1,11 @@
-const axios = require("axios");
-const express = require('express');
+import axios from "axios";
+import express from 'express';
+import bcrypt from "bcryptjs";
+import passport from "passport";
+import { runSql } from "../config/db.js";
+import homeController from '../controllers/homeController.js';       
+
 const router = express.Router();
-const bcrypt = require("bcryptjs");
-const passport = require("passport");
-const { runSql } = require("../config/db");
-const homeController = require('../controllers/homeController');       
 
 // -------------------- Existing Routes --------------------
 
@@ -65,4 +66,4 @@ router.post("/delete-comment", homeController.deleteComment);
 router.post("/edit-comment", homeController.editComment);
 router.post("/add-comment", homeController.addComment);
 
-module.exports = router;
+export default router;

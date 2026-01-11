@@ -1,6 +1,6 @@
 // db.js
-require("dotenv").config();
-const { Sequelize } = require("sequelize");
+import 'dotenv/config';
+import { Sequelize } from 'sequelize';
 // Sequelize is an ORM  , it help to work with  SQL databases .
 //  We need to provide dialect so that Sequelize knows with with DB we are working with so it can load necesarry drivers  and interact with DB accordingly .
 
@@ -52,4 +52,4 @@ sequelize
   .then(() => console.log("Database connection successful"))
   .catch((err) => console.error("DB error:", err));
 
-module.exports = { sequelize, runSql };
+export { sequelize, runSql };

@@ -1,10 +1,16 @@
-require("dotenv").config();
-const express = require("express");
-const session = require("express-session");
-const passport = require("passport");
-const path = require("path");
-require("./config/passport");      // <-- loads our raw SQL passport config
-require("./config/initTables");    // <-- creates MySQL tables from code
+import 'dotenv/config';
+import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
+import path from 'path';
+import expressLayouts from 'express-ejs-layouts';
+import homeRoutes from './routes/homeRoutes.js';
+import './config/passport.js';      // <-- loads our raw SQL passport config
+import './config/initTables.js';    // <-- creates MySQL tables from code
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const app = express();
 
 // =============================   
@@ -46,16 +52,12 @@ app.use(express.static(path.join(__dirname, "public")));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-const expressLayouts = require('express-ejs-layouts');
 app.use(expressLayouts);
 app.set('layout', 'layout'); // looks in views/layout.ejs
 
 // =============================
 // Routes
 // =============================
-const homeRoutes = require("./routes/homeRoutes");
-
-
 app.use("/", homeRoutes);
 
 

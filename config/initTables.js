@@ -1,4 +1,4 @@
-const { runSql } = require("./db");
+import { runSql } from './db.js';
 (async () => {
   const response = await runSql(
     `CREATE TABLE IF NOT EXISTS users (

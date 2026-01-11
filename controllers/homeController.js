@@ -1,5 +1,5 @@
-require("dotenv").config();  
-const axios = require("axios");
+import "dotenv/config";
+import axios from "axios";
 async function addReplyToComment(parentId, text, accessToken) {
   const url = "https://www.googleapis.com/youtube/v3/comments";
 
@@ -183,5 +183,5 @@ async function editComment(req, res) {
   }
 }
 
-module.exports = { index, register, addReply, deleteComment, editComment , addComment , about};
+export default { index, register, addReply, deleteComment, editComment , addComment , about};
 
