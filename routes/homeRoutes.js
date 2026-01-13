@@ -12,6 +12,7 @@ const router = express.Router();
 // Home page
 router.get('/', homeController.index );
 
+router.get('/serverStatus', homeController.serverStatus );
   
 
 router.post("/reply-comment", homeController.addReply );

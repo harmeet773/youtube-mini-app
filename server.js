@@ -3,15 +3,15 @@ import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import path from 'path';
-import expressLayouts from 'express-ejs-layouts';
 import homeRoutes from './routes/homeRoutes.js';
 import './config/passport.js';      // <-- loads our raw SQL passport config
 import './config/initTables.js';    // <-- creates MySQL tables from code
 import { fileURLToPath } from 'url';
-
+import cors from 'cors';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 
 // =============================   
 // Session middleware
@@ -24,6 +24,13 @@ app.use(
     secret: "psupersecretkey",
     resave: false,
     saveUninitialized: false,
+  })
+);
+
+
+app.use(
+  cors({
+    origin: allowedOrigins,
   })
 );
 
@@ -47,19 +54,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // =============================
-// View engine
-// =============================
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-app.use(expressLayouts);
-app.set('layout', 'layout'); // looks in views/layout.ejs
-
-// =============================
 // Routes
 // =============================
 app.use("/", homeRoutes);
-
+app.use("/youtube", youtubeRoutes);
 
 // =============================
 // 404 handler

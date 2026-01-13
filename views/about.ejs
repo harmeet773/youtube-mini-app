@@ -3,7 +3,7 @@
   <h4 class="mb-3">About <em>"Harmeet's Youtube"</em></h4>
   <p>
     The app is using <strong> Api Key </strong> from
-    <strong>YouTube Data API v3</strong> for fetching public content from my youtube account.
+    <strong>YouTube Data API v3</strong> for fetching public content from my youtube account.The api key can be used to fetch any publicly availiable data.
   </p>
   <p>
     It is using <strong>OAuth Client</strong> for authenticating users so that the app can get access for following scopes:
@@ -14,8 +14,6 @@
   <li>https://www.googleapis.com/auth/youtube.force-ssl</li>
 </ol>
 </div>
-  
-
 In this app Google OAuth 2.0 is implemented using passport.js . 
 <br />
 In this app , passport.js is using sessions( and not tokens) to keep track of logged in users. We are serializing user information into the session and deserializing it on subsequent requests.

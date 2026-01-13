@@ -4,7 +4,7 @@ async function addReplyToComment(parentId, text, accessToken) {
   const url = "https://www.googleapis.com/youtube/v3/comments";
 
   return axios.post(
-    url,  
+    url,   
     {
       snippet: {
         parentId: parentId,
@@ -19,9 +19,10 @@ async function addReplyToComment(parentId, text, accessToken) {
       params: {
         part: "snippet"
       }
-    }
+    }     
   );
 }
+// this function takes videoID and returns video details as well as comments.
 async function getVideoDetails(videoId) {
   const API_KEY = process.env.YT_API_KEY;
   const baseUrl = "https://www.googleapis.com/youtube/v3";
@@ -55,8 +56,8 @@ async function getVideoDetails(videoId) {
 }
 
 const about = async (req,res) => {
-  
-  res.render("about");
+
+  res.json({ message: "About page" });
 
 }
 
@@ -64,12 +65,12 @@ const index = async (req, res) => {
   const videoId = process.env.YT_VIDEO_ID;
   // Fetch details (now returns { video, comments })
   const data = await getVideoDetails(videoId);
-  res.render("home", {
+  res.json({
     video: data?.video || null,
     comments: data?.comments || [],
-    user: req.user   
+    user: req.user
   });
-};
+};   
 const register = async (req, res) => {
   // Send to view
   res.render("register");
@@ -183,5 +184,9 @@ async function editComment(req, res) {
   }
 }
 
-export default { index, register, addReply, deleteComment, editComment , addComment , about};
+async function serverStatus( req , res ) {
+  res.json("server is running");
+  
+}
+export default { serverStatus,index, register, addReply, deleteComment, editComment , addComment , about};
 
