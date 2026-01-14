@@ -1,7 +1,7 @@
 
 import youtubeController from "../controllers/youtubeController.js";
-
-const router = express.Router();
+import express from 'express';
+const router = express.Router(); 
 
 // -------------------- YOUTUBE ROUTES --------------------
 

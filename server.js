@@ -4,6 +4,7 @@ import session from 'express-session';
 import passport from 'passport';
 import path from 'path';
 import homeRoutes from './routes/homeRoutes.js';
+import youtubeRoutes from './routes/youtubeRoutes.js';
 import './config/passport.js';      // <-- loads our raw SQL passport config
 import './config/initTables.js';    // <-- creates MySQL tables from code
 import { fileURLToPath } from 'url';
