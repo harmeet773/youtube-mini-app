@@ -6,10 +6,10 @@ const router = express.Router();
 // -------------------- YOUTUBE ROUTES --------------------
 
 // Get all videos of a channel
-// GET /youtube/channel-videos?channelId=UCxxxx
-router.get("/channel-videos", youtubeController.getChannelVideos);
+// GET /youtube/channel-videos?channelId=UCxxxx        
+router.get("/channel-videos", youtubeController.getChannelVideos);      
 
-// Get single video details
+// Get single video details       
 // GET /youtube/video/:videoId
 router.get("/video/:videoId", youtubeController.getVideoDetails);
 
@@ -22,3 +22,5 @@ router.get("/channel/:channelId", youtubeController.getChannelDetails);
 router.get("/video/:videoId/comments", youtubeController.getVideoComments);
 
 export default router;  
+
+

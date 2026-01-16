@@ -9,7 +9,7 @@ const youtubeController = {
   // GET LATEST CHANNEL VIDEOS
   // ===============================
   async getChannelVideos(req, res) {
-  try {
+  try {    
     const API_KEY = process.env.YT_API_KEY;
     const CHANNELID = process.env.CHANNELID;
 
@@ -134,7 +134,7 @@ const youtubeController = {
         return res.status(404).json({ message: "Video not found" });
       }
 
-      res.json({
+      res.json({   
         success: true,
         video: response.data.items[0]
       });
