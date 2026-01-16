@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import passport from "passport";
 import { runSql } from "../config/db.js";
 import homeController from '../controllers/homeController.js';       
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -54,13 +56,24 @@ router.get(
 );
 
 
+   
+
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
-    res.redirect("/");
+    // Create your own JWT
+    const token = jwt.sign(req.user, "JWT_SECRET", {
+      expiresIn: "1d",
+    });
+
+    // Redirect back to frontend with token
+    res.redirect(
+      `http://localhost:5173/oauth-success?token=${token}`
+    );
   }
 );
+
 
 router.get("/about", homeController.about);
 router.post("/delete-comment", homeController.deleteComment);
