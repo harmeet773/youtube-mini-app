@@ -9,6 +9,56 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
+// -------------------- STATE ENCRYPTION SETUP --------------------
+
+const STATE_SECRET = process.env.STATE_SECRET || "STATE_ENCRYPTION_SECRET_32";
+const ALGORITHM = "aes-256-gcm";
+
+// Allowed frontend origins (security)
+const ALLOWED_FRONTENDS = [
+  "http://localhost:5173",
+  // "https://yourdomain.com"
+];
+
+// Encrypt OAuth state
+function encryptState(data) {
+  const iv = crypto.randomBytes(12);
+  const key = crypto.createHash("sha256").update(STATE_SECRET).digest();
+
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(JSON.stringify(data), "utf8", "base64");
+  encrypted += cipher.final("base64");
+
+  const tag = cipher.getAuthTag().toString("base64");
+
+  return Buffer.from(
+    JSON.stringify({
+      iv: iv.toString("base64"),
+      tag,
+      encrypted,
+    })
+  ).toString("base64");
+}
+
+// Decrypt OAuth state
+function decryptState(state) {
+  const key = crypto.createHash("sha256").update(STATE_SECRET).digest();
+  const decoded = JSON.parse(Buffer.from(state, "base64").toString());
+
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    key,
+    Buffer.from(decoded.iv, "base64")
+  );
+
+  decipher.setAuthTag(Buffer.from(decoded.tag, "base64"));
+
+  let decrypted = decipher.update(decoded.encrypted, "base64", "utf8");
+  decrypted += decipher.final("utf8");
+
+  return JSON.parse(decrypted);
+}
+
 // -------------------- Existing Routes --------------------
 
 // Home page
@@ -40,8 +90,29 @@ function ensureAuth(req, res, next) {
 // -------------------- GOOGLE AUTH ROUTES --------------------
 
 // Redirect to Google for authentication
-router.get(
-  "/auth/google",
+router.get("/auth/google", (req, res, next) => {
+  const origin = req.headers.origin;
+  console.log("on /auth/google page");
+
+  // Validate frontend origin
+  const frontend =
+    ALLOWED_FRONTENDS.includes(origin)
+      ? origin
+      : "http://localhost:5173";
+
+  // Dynamically build callback URL using query params method
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  const host = req.get("host");
+  const callbackURL = `${protocol}://${host}/auth/google/callback`;
+
+  // Encrypt frontend info inside OAuth state
+  const state = encryptState({
+    redirect: frontend,
+    ts: Date.now(), // timestamp for additional safety
+  });
+
+  console.log("on /auth/google page   , before opening popup");
+
   passport.authenticate("google", {
     scope: [
       "email",  // gives email address and Verified/unverified status
@@ -50,30 +121,54 @@ router.get(
       "https://www.googleapis.com/auth/youtube.force-ssl", // Post comments ,  Delete comments , Manage comment threads , View private YouTube data
       //"https://www.googleapis.com/auth/youtube" //  View YouTube account , View videos , View playlists ,iew subscriptions (if allowed)
     ],
-    accessType: "offline", 
-    prompt: "consent"
-  })  
-);
-
-
-   
+    accessType: "offline",
+    prompt: "consent",
+    state,
+    callbackURL, // ✅ dynamic callback injected here
+  })(req, res, next);
+});
 
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
-    // Create your own JWT
-    const token = jwt.sign(req.user, "JWT_SECRET", {
-      expiresIn: "1d",
-    });
+    try {
+      console.log("here on the /auth/google/callback page 1");   
 
-    // Redirect back to frontend with token
-    res.redirect(
-      `http://localhost:5173/oauth-success?token=${token}`
-    );
+      // Decrypt OAuth state
+      const stateData = decryptState(req.query.state);
+      console.log("this is stateData", stateData);
+
+      // Validate frontend again (anti open-redirect)
+      const frontend =
+        ALLOWED_FRONTENDS.includes(stateData.redirect)
+          ? stateData.redirect
+          : "http://localhost:5173";
+
+      // Create your own JWT
+      const token = jwt.sign(req.user, "JWT_SECRET", {
+        expiresIn: "1d",
+      });
+
+      console.log(
+        "here on the /auth/google/callback 2 , frontend is ",
+        frontend
+      );
+
+      // Redirect back to frontend with token
+      res.redirect(
+        `${frontend}/oauth-success?token=${token}`
+      );
+
+      console.log(
+        "here on the /auth/google/callback   ,after redirecting to frontend"
+      );
+    } catch (err) {
+      console.error("Invalid or tampered OAuth state", err);
+      res.redirect("http://localhost:5173/login");
+    }
   }
 );
-
 
 router.get("/about", homeController.about);
 router.post("/delete-comment", homeController.deleteComment);

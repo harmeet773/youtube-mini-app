@@ -28,12 +28,24 @@ app.use(
   })
 );
 
-
+console.log("allowed origins are ",allowedOrigins);
+// allowedOrigins is an an array 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true, // only if you use cookies/auth headers
   })
 );
+
 
 // =============================
 // Passport middleware

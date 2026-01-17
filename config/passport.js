@@ -36,7 +36,7 @@ import { runSql } from "./db.js";
 
 function getDynamicCallbackURL(req) {
   const host = req.get("host");
-
+      
   // If the domain includes "localhost" → use http
   if (host.includes("localhost")) {
     return `http://${host}/auth/google/callback`;
@@ -44,7 +44,7 @@ function getDynamicCallbackURL(req) {
 
   // Otherwise → force https for production
   return `https://${host}/auth/google/callback`;
-}
+}   
 
 passport.use(
   new GoogleStrategy(
