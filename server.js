@@ -67,6 +67,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // =============================
+// Content Security Policy
+// =============================
+// need to documention of below lines.
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:10000");
+  next();
+});
+
+// =============================
 // Routes
 // =============================
 app.use("/", homeRoutes);

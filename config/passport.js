@@ -4,9 +4,6 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import bcrypt from "bcryptjs";
 import { runSql } from "./db.js";
 
-
-
-
 // ------------------- LOCAL STRATEGY -------------------
 /* passport.use(
   new LocalStrategy(async (username, password, done) => {
