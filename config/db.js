@@ -5,7 +5,7 @@ import { Sequelize } from 'sequelize';
 //  We need to provide dialect so that Sequelize knows with with DB we are working with so it can load necesarry drivers  and interact with DB accordingly .
 
 let sequelize;
-if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequelize(
+if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequelize(   
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASS,

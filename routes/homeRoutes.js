@@ -6,7 +6,7 @@ import { runSql } from "../config/db.js";
 import homeController from '../controllers/homeController.js';       
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-
+import {getDynamicCallbackURL} from '../config/passport.js';
 const router = express.Router();
 
 // -------------------- STATE ENCRYPTION SETUP --------------------
@@ -124,13 +124,16 @@ router.get("/auth/google", (req, res, next) => {
     accessType: "offline",
     prompt: "consent",
     state,
-    callbackURL, // ✅ dynamic callback injected here
+    callbackURL: getDynamicCallbackURL(req),
   })(req, res, next);
 });
 
 router.get(
   "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res, next) => {
+    const callbackURL = getDynamicCallbackURL(req);
+    passport.authenticate("google", { failureRedirect: "/login", callbackURL })(req, res, next);
+  },
   (req, res) => {
     try {
       console.log("here on the /auth/google/callback page 1");   
@@ -149,7 +152,7 @@ router.get(
       const token = jwt.sign(req.user, "JWT_SECRET", {
         expiresIn: "1d",
       });
-
+   
       console.log(
         "here on the /auth/google/callback 2 , frontend is ",
         frontend
@@ -165,7 +168,8 @@ router.get(
       );
     } catch (err) {
       console.error("Invalid or tampered OAuth state", err);
-      res.redirect("http://localhost:5173/login");
+      
+      res.redirect(`${frontend}`);
     }
   }
 );
@@ -174,5 +178,22 @@ router.get("/about", homeController.about);
 router.post("/delete-comment", homeController.deleteComment);
 router.post("/edit-comment", homeController.editComment);
 router.post("/add-comment", homeController.addComment);
+
+// Middleware to check for token in requests and authenticate user via passport.js if token is present
+router.use((req, res, next) => {
+  const token = req.headers['authorization'];
+  if (token) {
+    console.log('Frontend is sending token , deel');         
+
+    try {
+    passport.authenticate('jwt', { session: false })(req, res, next);
+    } catch (err) {
+      console.error("JWT Authentication Error:", err);
+      res.status(401).json({ error: "Invalid token" });
+    }
+  } else {
+    next();
+  }
+});
 
 export default router;

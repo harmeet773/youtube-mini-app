@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcryptjs";
 import { runSql } from "./db.js";
 
@@ -33,7 +34,7 @@ import { runSql } from "./db.js";
 
 function getDynamicCallbackURL(req) {
   const host = req.get("host");
-      
+
   // If the domain includes "localhost" → use http
   if (host.includes("localhost")) {
     return `http://${host}/auth/google/callback`;
@@ -41,16 +42,17 @@ function getDynamicCallbackURL(req) {
 
   // Otherwise → force https for production
   return `https://${host}/auth/google/callback`;
-}   
+}
 
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL, // use environment variable
+      callbackURL: getDynamicCallbackURL, // Set dynamic callbackURL
+      passReqToCallback: true, // ✅ IMPORTANT
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
       try {
         const googleId = profile.id;
         const email = profile.emails?.[0]?.value || null;
@@ -79,7 +81,7 @@ passport.use(
           "SELECT * FROM users WHERE google_id = ?",
           [googleId]
         );
-
+        console.log("user should have been added to database");
         if (!created.result.length) return done(new Error("User insert failed"));
 
         return done(null, created.result[0]);
@@ -89,6 +91,33 @@ passport.use(
     }
   )
 );
+
+// ------------------- JWT STRATEGY -------------------
+
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET || "JWT_SECRET",
+};
+
+passport.use(
+  new JwtStrategy(jwtOptions, async (payload, done) => {
+    try {
+      const { success, result } = await runSql(
+        "SELECT * FROM users WHERE id = ?",
+        [payload.id]
+      );
+
+      if (!success || result.length === 0) {
+        return done(null, false);
+      }
+
+      return done(null, result[0]);
+    } catch (err) {
+      return done(err, false);
+    }
+  })
+);
+
 // ------------------- SESSION HANDLING -------------------
 
 passport.serializeUser((user, done) => {
@@ -106,3 +135,4 @@ passport.deserializeUser(async (id, done) => {
 });
 
 export default passport;
+export {getDynamicCallbackURL};

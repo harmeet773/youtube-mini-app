@@ -8,12 +8,13 @@ const youtubeController = {
   // ===============================
   // GET LATEST CHANNEL VIDEOS
   // ===============================
-  async getChannelVideos(req, res) {
+  async getChannelVideos(req, res) {         
   try {    
     const API_KEY = process.env.YT_API_KEY;
     const CHANNELID = process.env.CHANNELID;
-
+    console.log("Fetching videos for channel ID:", CHANNELID,"del");
     if (!CHANNELID) {
+      console.error("Channel ID not provided in .env");
       return res.status(400).json({ message: "Channel ID not provided in .env" });
     }
 
@@ -30,8 +31,9 @@ const youtubeController = {
         }
       }
     );
-
+    console.log("Channel response data:", channelRes.data , "del");
     if (!channelRes.data.items?.length) {
+      console.error("Channel not found");
       return res.status(404).json({ message: "Channel not found" });
     }
 
@@ -43,7 +45,7 @@ const youtubeController = {
     // ===============================
     let videoIds = [];
     let nextPageToken = "";
-
+    console.log("Fetching videos from uploads playlist ID:", uploadsPlaylistId , "del");
     do {
       const playlistRes = await axios.get(
         "https://www.googleapis.com/youtube/v3/playlistItems",
@@ -69,7 +71,7 @@ const youtubeController = {
     // STEP 3: Get full video details
     // ===============================
     let videos = [];
-
+    console.log("Total video IDs fetched:", videoIds.length , "del");
     for (let i = 0; i < videoIds.length; i += 50) {
       const batchIds = videoIds.slice(i, i + 50).join(",");
 
@@ -98,7 +100,7 @@ const youtubeController = {
         }))
       );
     }
-
+    console.log("Total videos fetched with details:", videos.length , "del"); 
     res.json({
       success: true,
       totalVideos: videos.length,
