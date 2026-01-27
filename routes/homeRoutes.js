@@ -196,5 +196,7 @@ router.get("/about", homeController.about);
 router.post("/delete-comment", homeController.deleteComment);
 router.post("/edit-comment", homeController.editComment);
 router.post("/add-comment", homeController.addComment);
+router.post("/comment-rating", homeController.setCommentRating);
+router.post("/video-rating", homeController.setVideoRating);
 
 export default router;

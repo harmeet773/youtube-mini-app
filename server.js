@@ -87,8 +87,7 @@ app.use((req, res, next) => {
       'JWT token is present in authorization header'
     );         
     passport.authenticate('jwt', { session: false })(req, res, next);
-    console.log('JWT authentication strategy of passport ran , user must have been defined in req.user, req.user is ', req.use );  
-    
+    // Note: passport.authenticate is asynchronous. The log below will run before the callback.
   } else {
     next();                 
   }

@@ -188,5 +188,79 @@ async function serverStatus( req , res ) {
   res.json("server is running");
   
 }
-export default { serverStatus,index, register, addReply, deleteComment, editComment , addComment , about};
+
+// LIKE/DISLIKE (SET RATING) FOR COMMENT
+async function setCommentRating(req, res) {
+  let { commentId, rating } = req.body; // rating can be 'like', 'dislike', or 'none'
+
+  if (!req.user?.access_token) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  // If commentId starts with "Ug", it's likely a CommentThread ID.
+  // The setRating API requires the top-level comment ID, which usually 
+  // starts with "Ug" but it's the SAME as the thread ID if we are liking the top comment.
+  // HOWEVER, sometimes the thread ID and top-level comment ID are slightly different in structure
+  // although YouTube usually accepts the thread ID for setRating if it's a top-level comment.
+  // Let's ensure we have a valid ID.
+
+  try {
+    console.log(`Setting rating "${rating}" for comment ID: ${commentId}`);
+    
+    await axios.post(
+      "https://www.googleapis.com/youtube/v3/comments/setRating",
+      null,
+      {
+        params: {
+          id: commentId,
+          rating: rating
+        },
+        headers: { Authorization: `Bearer ${req.user.access_token}` }
+      }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Comment rating error detail:", err.response?.data || err.message);
+    if (err.response?.data) {
+        console.error("YouTube API Error Response:", JSON.stringify(err.response.data, null, 2));
+    }
+    
+    // If it's a 400 error, it might be an invalid ID.
+    return res.status(err.response?.status || 500).json({ 
+        error: "Failed to set comment rating", 
+        details: err.response?.data || err.message 
+    });
+  }
+}
+
+// LIKE/DISLIKE (SET RATING) FOR VIDEO
+async function setVideoRating(req, res) {
+  const { videoId, rating } = req.body; // rating can be 'like', 'dislike', or 'none'
+
+  if (!req.user?.access_token) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    await axios.post(
+      "https://www.googleapis.com/youtube/v3/videos/rate",
+      null,
+      {
+        params: {
+          id: videoId,
+          rating: rating
+        },
+        headers: { Authorization: `Bearer ${req.user.access_token}` }
+      }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Video rating error:", err.response?.data || err.message);
+    return res.status(500).json({ error: "Failed to set video rating" });
+  }
+}
+
+export default { serverStatus,index, register, addReply, deleteComment, editComment , addComment , about, setCommentRating, setVideoRating};
 

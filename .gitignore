@@ -9,4 +9,8 @@ node_modules/
 # IDE files
 .vscode/
 
+.idea/*
+terminal_logs_file.txt
+
+
 clipboard.js

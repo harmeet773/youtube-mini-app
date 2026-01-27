@@ -1,7 +1,58 @@
 import axios from "axios";
 
-const API_KEY = process.env.YT_API_KEY;
-const CHANNELID = process.env.CHANNELID;
+// ===============================
+// HELPERS FOR COMMENTS
+// ===============================
+
+/**
+ * Maps a single YouTube comment resource (reply) to our clean JSON format.
+ */
+const mapReply = (reply) => {
+  const snippet = reply.snippet || {};
+  return {
+    replyId: reply.id,
+    parentId: snippet.parentId,
+    textDisplay: snippet.textDisplay || snippet.textOriginal || "",
+    textOriginal: snippet.textOriginal || snippet.textDisplay || "",
+    authorName: snippet.authorDisplayName,
+    authorProfileImage: snippet.authorProfileImageUrl,
+    authorChannelId: snippet.authorChannelId?.value,
+    authorChannelUrl: snippet.authorChannelUrl,
+    likeCount: snippet.likeCount,
+    publishedAt: snippet.publishedAt,
+    updatedAt: snippet.updatedAt,
+    viewerRating: snippet.viewerRating,
+  };
+};
+
+/**
+ * Fetches ALL replies for a specific comment thread using pagination.
+ */
+async function fetchAllReplies(parentId, apiKey) {
+  let allReplies = [];
+  let nextPageToken = "";
+  try {
+    do {
+      const response = await axios.get(
+        "https://www.googleapis.com/youtube/v3/comments",
+        {
+          params: {
+            key: apiKey,
+            parentId: parentId,
+            part: "snippet",
+            maxResults: 100,
+            pageToken: nextPageToken || undefined,
+          },
+        }
+      );
+      allReplies.push(...(response.data?.items || []));
+      nextPageToken = response.data?.nextPageToken || "";
+    } while (nextPageToken);
+  } catch (err) {
+    console.error(`Error fetching replies for thread ${parentId}:`, err.response?.data || err.message);
+  }
+  return allReplies;
+}
 
 const youtubeController = {
 
@@ -10,12 +61,18 @@ const youtubeController = {
   // ===============================
   async getChannelVideos(req, res) {         
   try {    
-    const API_KEY = process.env.YT_API_KEY;
-    const CHANNELID = process.env.CHANNELID;
-    console.log("Fetching videos for channel ID:", CHANNELID,"del");
-    if (!CHANNELID) {
+    const apiKey = process.env.YT_API_KEY;
+    const channelId = process.env.CHANNELID;
+
+    console.log("Fetching videos for channel ID:", channelId);
+    if (!channelId) {
       console.error("Channel ID not provided in .env");
       return res.status(400).json({ message: "Channel ID not provided in .env" });
+    }
+
+    if (!apiKey) {
+      console.error("YT_API_KEY not provided in .env");
+      return res.status(500).json({ message: "YT_API_KEY not provided in .env" });
     }
 
     // ===============================
@@ -25,13 +82,13 @@ const youtubeController = {
       "https://www.googleapis.com/youtube/v3/channels",
       {
         params: {
-          key: API_KEY,
-          id: CHANNELID,
+          key: apiKey,
+          id: channelId,
           part: "contentDetails"
         }
       }
     );
-    console.log("Channel response data:", channelRes.data , "del");
+    
     if (!channelRes.data.items?.length) {
       console.error("Channel not found");
       return res.status(404).json({ message: "Channel not found" });
@@ -45,17 +102,18 @@ const youtubeController = {
     // ===============================
     let videoIds = [];
     let nextPageToken = "";
-    console.log("Fetching videos from uploads playlist ID:", uploadsPlaylistId , "del");
+    console.log("Fetching videos from uploads playlist ID:", uploadsPlaylistId);
+    
     do {
       const playlistRes = await axios.get(
         "https://www.googleapis.com/youtube/v3/playlistItems",
         {
           params: {
-            key: API_KEY,
+            key: apiKey,
             playlistId: uploadsPlaylistId,
             part: "contentDetails",
             maxResults: 50,
-            pageToken: nextPageToken
+            pageToken: nextPageToken || undefined
           }
         }
       );
@@ -71,7 +129,7 @@ const youtubeController = {
     // STEP 3: Get full video details
     // ===============================
     let videos = [];
-    console.log("Total video IDs fetched:", videoIds.length , "del");
+    console.log("Total video IDs fetched:", videoIds.length);
     for (let i = 0; i < videoIds.length; i += 50) {
       const batchIds = videoIds.slice(i, i + 50).join(",");
 
@@ -79,7 +137,7 @@ const youtubeController = {
         "https://www.googleapis.com/youtube/v3/videos",
         {
           params: {
-            key: API_KEY,
+            key: apiKey,
             id: batchIds,
             part: "snippet,statistics,contentDetails"
           }
@@ -100,7 +158,7 @@ const youtubeController = {
         }))
       );
     }
-    console.log("Total videos fetched with details:", videos.length , "del"); 
+    
     res.json({
       success: true,
       totalVideos: videos.length,
@@ -109,7 +167,7 @@ const youtubeController = {
 
   } catch (err) {
     console.error("YouTube API Error:", err.response?.data || err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.response?.status || 500).json({ error: err.message });
   }
 }
 ,
@@ -120,12 +178,17 @@ const youtubeController = {
   async getVideoDetails(req, res) {
     try {
       const { videoId } = req.params;
+      const apiKey = process.env.YT_API_KEY;
+
+      if (!apiKey) {
+        return res.status(500).json({ message: "YT_API_KEY is missing" });
+      }
 
       const response = await axios.get(
         "https://www.googleapis.com/youtube/v3/videos",
         {
           params: {
-            key: API_KEY,
+            key: apiKey,
             id: videoId,
             part: "snippet,statistics,contentDetails"
           }
@@ -142,7 +205,7 @@ const youtubeController = {
       });
 
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(err.response?.status || 500).json({ error: err.message });
     }
   },
 
@@ -151,16 +214,22 @@ const youtubeController = {
   // ===============================
   async getChannelDetails(req, res) {
     try {
-      if (!CHANNELID) {
+      const apiKey = process.env.YT_API_KEY;
+      const channelId = process.env.CHANNELID;
+
+      if (!channelId) {
         return res.status(400).json({ message: "Channel ID not provided in .env" });
+      }
+      if (!apiKey) {
+        return res.status(500).json({ message: "YT_API_KEY is missing" });
       }
 
       const response = await axios.get(
         "https://www.googleapis.com/youtube/v3/channels",
         {
           params: {
-            key: API_KEY,
-            id: CHANNELID,
+            key: apiKey,
+            id: channelId,
             part: "snippet,statistics"
           }
         }
@@ -176,16 +245,24 @@ const youtubeController = {
       });
 
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(err.response?.status || 500).json({ error: err.message });
     }
   },
 
   // ===============================
   // GET VIDEO COMMENTS
   // ===============================
- async getVideoComments(req, res) {
-  try {
+  async getVideoComments(req, res) {
     const { videoId } = req.params;
+    const apiKey = process.env.YT_API_KEY;
+
+    if (!apiKey) {
+      console.error("YT_API_KEY is missing in .env");
+      return res.status(500).json({
+        success: false,
+        message: "YT_API_KEY is missing"
+      });
+    }
 
     if (!videoId) {
       return res.status(400).json({
@@ -194,88 +271,121 @@ const youtubeController = {
       });
     }
 
-    let allComments = [];
-    let nextPageToken = null;
+    try {
+      let allComments = [];
+      let nextPageToken = "";
+      let totalFetchedItems = 0;
 
-    do {
-      const response = await axios.get(
-        "https://www.googleapis.com/youtube/v3/commentThreads",
-        {
-          params: {
-            key: API_KEY,
-            videoId,
-            part: "snippet,replies",
-            maxResults: 100, // API limit
-            pageToken: nextPageToken
+      console.log(`[YouTube API] Fetching comments for video: ${videoId}...`);
+
+      // Fetch all comment threads (top-level comments)
+      do {
+        const response = await axios.get(
+          "https://www.googleapis.com/youtube/v3/commentThreads",
+          {
+            params: {
+              key: apiKey,
+              videoId,
+              part: "snippet,replies",
+              maxResults: 100,
+              pageToken: nextPageToken || undefined
+            }
           }
+        );
+
+        const items = response.data?.items || [];
+        
+        // Map threads and fetch full replies if needed
+        const mappedComments = await Promise.all(items.map(async (item) => {
+          const top = item.snippet?.topLevelComment?.snippet;
+          if (!top) return null;
+
+          let replies = [];
+          const totalReplyCount = item.snippet?.totalReplyCount || 0;
+          const initialReplies = item.replies?.comments || [];
+
+          // YouTube API includes up to 5 replies in the thread resource.
+          // If totalReplyCount > returned replies, fetch all using comments.list properly.
+          if (totalReplyCount > 0) {
+            if (initialReplies.length < totalReplyCount) {
+              const fullReplies = await fetchAllReplies(item.id, apiKey);
+              replies = fullReplies.map(mapReply);
+            } else {
+              replies = initialReplies.map(mapReply);
+            }
+          }
+
+          return {
+            commentThreadId: item.id,
+            commentId: item.snippet?.topLevelComment?.id || item.id,
+            textDisplay: top.textDisplay || top.textOriginal || "",
+            textOriginal: top.textOriginal || top.textDisplay || "",
+            authorName: top.authorDisplayName,
+            authorProfileImage: top.authorProfileImageUrl,
+            authorChannelId: top.authorChannelId?.value,
+            authorChannelUrl: top.authorChannelUrl,
+            likeCount: top.likeCount,
+            publishedAt: top.publishedAt,
+            updatedAt: top.updatedAt,
+            viewerRating: top.viewerRating,
+            canReply: item.snippet?.canReply,
+            totalReplyCount: totalReplyCount,
+            isPublic: item.snippet?.isPublic,
+            replies: replies
+          };
+        }));
+
+        const filteredComments = mappedComments.filter(Boolean);
+        allComments.push(...filteredComments);
+        
+        // Update total count for metrics
+        filteredComments.forEach(c => {
+          totalFetchedItems += 1; // The top-level comment
+          totalFetchedItems += (c.replies?.length || 0); // All its replies
+        });
+
+        nextPageToken = response.data?.nextPageToken || "";
+        if (nextPageToken) {
+           console.log(`[YouTube API] Fetched ${allComments.length} threads so far, moving to next page...`);
         }
-      );
 
-      nextPageToken = response.data.nextPageToken;
+      } while (nextPageToken);
 
-      const items = response.data.items || [];
+      console.log(`[YouTube API] Finished fetching. Total threads: ${allComments.length}, Total comments (including replies): ${totalFetchedItems}`);
 
-      items.forEach(item => {
-        const top = item.snippet.topLevelComment.snippet;
-
-        const comment = {
-          commentThreadId: item.id,
-          commentId: item.snippet.topLevelComment.id,
-
-          // Text
-          textDisplay: top.textDisplay,
-          textOriginal: top.textOriginal,
-
-          // Author
-          authorName: top.authorDisplayName,
-          authorProfileImage: top.authorProfileImageUrl,
-          authorChannelId: top.authorChannelId?.value,
-          authorChannelUrl: top.authorChannelUrl,
-
-          // Meta
-          likeCount: top.likeCount,
-          publishedAt: top.publishedAt,
-          updatedAt: top.updatedAt,
-          viewerRating: top.viewerRating,
-          canReply: item.snippet.canReply,
-          totalReplyCount: item.snippet.totalReplyCount,
-          isPublic: item.snippet.isPublic,
-
-          // Replies (if any)
-          replies: item.replies?.comments?.map(reply => ({
-            replyId: reply.id,
-            textDisplay: reply.snippet.textDisplay,
-            textOriginal: reply.snippet.textOriginal,
-            authorName: reply.snippet.authorDisplayName,
-            authorChannelId: reply.snippet.authorChannelId?.value,
-            likeCount: reply.snippet.likeCount,
-            publishedAt: reply.snippet.publishedAt
-          })) || []
-        };
-
-        allComments.push(comment);
+      return res.json({
+        success: true,
+        videoId,
+        totalThreadsFetched: allComments.length,
+        totalCommentsFetched: totalFetchedItems,
+        comments: allComments
       });
 
-    } while (nextPageToken); // paginate to get ALL comments
+    } catch (err) {
+      const errorResponse = err?.response?.data?.error;
+      const reason = errorResponse?.errors?.[0]?.reason;
 
-    res.json({
-      success: true,
-      videoId,
-      totalCommentsFetched: allComments.length,
-      comments: allComments
-    });
+      if (reason === "commentsDisabled") {
+        return res.json({
+          success: true,
+          videoId,
+          totalThreadsFetched: 0,
+          totalCommentsFetched: 0,
+          comments: [],
+          message: "Comments are disabled for this video"
+        });
+      }
 
-  } catch (err) {
-    console.error("YouTube API Error:", err?.response?.data || err.message);
+      console.error("YouTube API Error:", errorResponse || err.message);
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch comments",
-      error: err?.response?.data || err.message
-    });
-  }
-}
-,
+      return res.status(err.response?.status || 500).json({
+        success: false,
+        message: "Failed to fetch comments",
+        error: errorResponse || err.message
+      });
+    }
+  },
+
    async getUserProfile(req, res) {
     try {
       console.log("getUserProfile is called ,following data is being passesd", JSON.stringify(req.user) );     
