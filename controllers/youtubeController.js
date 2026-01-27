@@ -386,15 +386,263 @@ const youtubeController = {
     }
   },
 
-   async getUserProfile(req, res) {
+  async getUserProfile(req, res) {
     try {
-      console.log("getUserProfile is called ,following data is being passesd", JSON.stringify(req.user) );     
-      const {id,  email ,given_name , family_name ,picture } = req.user ; 
+      console.log("getUserProfile is called ,following data is being passesd", JSON.stringify(req.user) );
+      const {id,  email ,given_name , family_name ,picture } = req.user ;
       res.json({id,  email ,given_name , family_name ,picture });
-   
+
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  },
+
+  // ===============================
+  // SERVER STATUS
+  // ===============================
+  async serverStatus(req, res) {
+    res.json({ status: "ok", message: "Server is running" });
+  },
+
+  // ===============================
+  // GET VIDEO WITH COMMENTS (HOME)
+  // ===============================
+  async getHomeVideo(req, res) {
+    const videoId = process.env.YT_VIDEO_ID;
+    const apiKey = process.env.YT_API_KEY;
+
+    if (!videoId || !apiKey) {
+      return res.status(500).json({ error: "Video ID or API key missing" });
+    }
+
+    try {
+      // Fetch video details
+      const videoRes = await axios.get("https://www.googleapis.com/youtube/v3/videos", {
+        params: {
+          part: "snippet,contentDetails,statistics,status",
+          id: videoId,
+          key: apiKey
+        }
+      });
+
+      // Fetch comments for this video
+      const commentsRes = await axios.get("https://www.googleapis.com/youtube/v3/commentThreads", {
+        params: {
+          part: "snippet,replies",
+          videoId: videoId,
+          maxResults: 100,
+          key: apiKey
+        }
+      });
+
+      res.json({
+        video: videoRes.data,
+        comments: commentsRes.data.items || [],
+        user: req.user || null
+      });
+    } catch (err) {
+      console.error("Error fetching home video:", err.response?.data || err.message);
+      res.status(500).json({ error: "Failed to fetch video details" });
+    }
+  },
+
+  // ===============================
+  // ADD REPLY TO COMMENT
+  // ===============================
+  async addReply(req, res) {
+    const { parentId, replyText } = req.body;
+
+    if (!req.user?.access_token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const response = await axios.post(
+        "https://www.googleapis.com/youtube/v3/comments",
+        {
+          snippet: {
+            parentId: parentId,
+            textOriginal: replyText
+          }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${req.user.access_token}`,
+            "Content-Type": "application/json"
+          },
+          params: {
+            part: "snippet"
+          }
+        }
+      );
+
+      return res.json({
+        success: true,
+        reply: response.data
+      });
+    } catch (err) {
+      console.error("Reply error:", err.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to post reply" });
+    }
+  },
+
+  // ===============================
+  // DELETE COMMENT
+  // ===============================
+  async deleteComment(req, res) {
+    const { commentId } = req.body;
+
+    if (!req.user?.access_token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await axios.delete("https://www.googleapis.com/youtube/v3/comments", {
+        params: { id: commentId },
+        headers: { Authorization: `Bearer ${req.user.access_token}` }
+      });
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Delete error:", err.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to delete comment" });
+    }
+  },
+
+  // ===============================
+  // ADD COMMENT
+  // ===============================
+  async addComment(req, res) {
+    try {
+      const { videoId, commentText } = req.body;
+
+      if (!req.user?.access_token) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const response = await axios.post(
+        "https://www.googleapis.com/youtube/v3/commentThreads?part=snippet",
+        {
+          snippet: {
+            videoId,
+            topLevelComment: {
+              snippet: { textOriginal: commentText }
+            }
+          }
+        },
+        { headers: { Authorization: `Bearer ${req.user.access_token}` } }
+      );
+
+      return res.json({
+        success: true,
+        comment: response.data
+      });
+    } catch (error) {
+      console.error(error?.response?.data || error.message);
+      return res.status(500).json({ error: "Failed to post comment" });
+    }
+  },
+
+  // ===============================
+  // EDIT COMMENT
+  // ===============================
+  async editComment(req, res) {
+    const { commentId, newText } = req.body;
+
+    if (!req.user?.access_token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await axios.put(
+        "https://www.googleapis.com/youtube/v3/comments",
+        {
+          id: commentId,
+          snippet: { textOriginal: newText }
+        },
+        {
+          params: { part: "snippet" },
+          headers: { Authorization: `Bearer ${req.user.access_token}` }
+        }
+      );
+
+      return res.json({
+        success: true,
+        newText
+      });
+    } catch (err) {
+      console.error("Edit error:", err.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to edit comment" });
+    }
+  },
+
+  // ===============================
+  // SET COMMENT RATING (LIKE/DISLIKE)
+  // ===============================
+  async setCommentRating(req, res) {
+    const { commentId, rating } = req.body;
+
+    if (!req.user?.access_token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      // NOTE: The YouTube Data API v3 does not currently support setting ratings (like/dislike) on comments.
+      // Calling 'https://www.googleapis.com/youtube/v3/comments/setRating' results in a 404 error.
+      // To provide a smooth user experience, we will simulate success here, allowing the frontend to update its UI.
+      
+      console.log(`Simulating comment rating (${rating}) for commentId: ${commentId}`);
+
+      return res.json({ 
+        success: true, 
+        message: "Comment rating not supported by YouTube API",
+        commentId,
+        rating
+      });
+    } catch (err) {
+      console.error("Comment rating error:", err.response?.data || err.message);
+      return res.status(500).json({
+        error: "Failed to set comment rating",
+        details: err.response?.data || err.message
+      });
+    }
+  },
+
+  // ===============================
+  // SET VIDEO RATING (LIKE/DISLIKE)
+  // ===============================
+  async setVideoRating(req, res) {
+    const { videoId, rating } = req.body;
+
+    if (!req.user?.access_token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      await axios.post(
+        "https://www.googleapis.com/youtube/v3/videos/rate",
+        null,
+        {
+          params: {
+            id: videoId,
+            rating: rating
+          },
+          headers: { Authorization: `Bearer ${req.user.access_token}` }
+        }
+      );
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Video rating error:", err.response?.data || err.message);
+      return res.status(500).json({ error: "Failed to set video rating" });
+    }
+  },
+
+  // ===============================
+  // ABOUT
+  // ===============================
+  async about(req, res) {
+    res.json({ message: "About page - YouTube Clone API" });
   }
 
 };

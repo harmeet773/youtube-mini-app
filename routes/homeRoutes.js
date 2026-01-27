@@ -1,13 +1,7 @@
-import axios from "axios";
 import express from 'express';
-import bcrypt from "bcryptjs";
 import passport from "passport";
-import { runSql } from "../config/db.js";
-import homeController from '../controllers/homeController.js';       
 import crypto from "crypto";
 import { getDynamicCallbackURL } from '../config/passport.js';
-import { generateToken } from '../config/jwt.js';
-import { Json } from "sequelize/lib/utils";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
@@ -62,35 +56,10 @@ function decryptState(state) {
   return JSON.parse(decrypted);
 }
 
-// -------------------- Existing Routes --------------------
-
-// Home page
-router.get('/', homeController.index);
-
-router.get('/serverStatus', homeController.serverStatus);
-
-router.post("/reply-comment", homeController.addReply);
-
-// Protected route
-//router.get("/dashboard", ensureAuth, homeController.index );
-
-// Logout
-router.get("/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect("/login");
-  });
-});
-
-// Middleware to check login
-function ensureAuth(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.redirect("/");
-}
-
 // -------------------- GOOGLE AUTH ROUTES --------------------
 
 // Redirect to Google for authentication
-router.get("/auth/google", (req, res, next) => {
+router.get("/google", (req, res, next) => {
   console.log("on /auth/google page");
 
   // Frontend is already resolved by global frontendResolver middleware
@@ -113,7 +82,7 @@ router.get("/auth/google", (req, res, next) => {
     scope: [
       "email",  // gives email address and Verified/unverified status
       "profile", // gives you Name, Profile picture ,Google ID
-      // it is Highest-level YouTube permission, 
+      // it is Highest-level YouTube permission,
       "https://www.googleapis.com/auth/youtube.force-ssl", // Post comments ,  Delete comments , Manage comment threads , View private YouTube data
       //"https://www.googleapis.com/auth/youtube" //  View YouTube account , View videos , View playlists ,iew subscriptions (if allowed)
     ],
@@ -125,7 +94,7 @@ router.get("/auth/google", (req, res, next) => {
 });
 
 router.get(
-  "/auth/google/callback",
+  "/google/callback",
   (req, res, next) => {
     const callbackURL = getDynamicCallbackURL(req);
     passport.authenticate(
@@ -192,11 +161,11 @@ router.get(
   }
 );
 
-router.get("/about", homeController.about);
-router.post("/delete-comment", homeController.deleteComment);
-router.post("/edit-comment", homeController.editComment);
-router.post("/add-comment", homeController.addComment);
-router.post("/comment-rating", homeController.setCommentRating);
-router.post("/video-rating", homeController.setVideoRating);
+// Logout
+router.get("/logout", (req, res) => {
+  req.logout(() => {
+    res.json({ success: true, message: "Logged out successfully" });
+  });
+});
 
 export default router;

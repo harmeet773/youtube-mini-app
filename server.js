@@ -3,8 +3,8 @@ import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import path from 'path';
-import homeRoutes from './routes/homeRoutes.js';
 import youtubeRoutes from './routes/youtubeRoutes.js';
+import authRoutes from './routes/homeRoutes.js';
 import './config/passport.js';      // <-- loads our raw SQL passport config
 import './config/initTables.js';    // <-- creates MySQL tables from code
 import { fileURLToPath } from 'url';
@@ -97,8 +97,8 @@ app.use((req, res, next) => {
 // =============================
 // Routes
 // =============================
-app.use("/", homeRoutes);
-app.use("/youtube", youtubeRoutes);
+app.use("/auth", authRoutes);
+app.use("/api", youtubeRoutes);
 
 // =============================
 // 404 handler
