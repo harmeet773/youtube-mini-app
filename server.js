@@ -8,6 +8,7 @@ import youtubeRoutes from './routes/youtubeRoutes.js';
 import './config/passport.js';      // <-- loads our raw SQL passport config
 import './config/initTables.js';    // <-- creates MySQL tables from code
 import { fileURLToPath } from 'url';
+import { frontendResolver } from './config/frontendResolver.js';
 import cors from 'cors';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +48,9 @@ app.use(
 );
 
 
+app.use(frontendResolver);
+
+
 // =============================
 // Passport middleware
 // =============================
@@ -75,6 +79,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to check for JWT token in Authorization header and authenticate user
+app.use((req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {     
+    console.log(
+      'JWT token is present in authorization header'
+    );         
+    passport.authenticate('jwt', { session: false })(req, res, next);
+    console.log('JWT authentication strategy of passport ran , user must have been defined in req.user, req.user is ', req.use );  
+    
+  } else {
+    next();                 
+  }
+});
+
+
 // =============================
 // Routes
 // =============================
@@ -87,6 +107,9 @@ app.use("/youtube", youtubeRoutes);
 app.use((req, res) => {
   res.status(404).json({ message: "Endpoint not found" });
 });
+
+
+
 
 // =============================
 // Start server
