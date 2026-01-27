@@ -21,6 +21,8 @@ router.get("/channel/:channelId", youtubeController.getChannelDetails);
 // GET /youtube/video/:videoId/comments
 router.get("/video/:videoId/comments", youtubeController.getVideoComments);
 
+router.get("/getUserProfile",youtubeController.getUserProfile);
+
 export default router;  
 
 

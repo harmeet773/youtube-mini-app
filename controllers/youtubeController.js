@@ -183,40 +183,110 @@ const youtubeController = {
   // ===============================
   // GET VIDEO COMMENTS
   // ===============================
-  async getVideoComments(req, res) {
-    try {
-      const { videoId } = req.params;
+ async getVideoComments(req, res) {
+  try {
+    const { videoId } = req.params;
 
+    if (!videoId) {
+      return res.status(400).json({
+        success: false,
+        message: "videoId is required"
+      });
+    }
+
+    let allComments = [];
+    let nextPageToken = null;
+
+    do {
       const response = await axios.get(
         "https://www.googleapis.com/youtube/v3/commentThreads",
         {
           params: {
             key: API_KEY,
             videoId,
-            part: "snippet",
-            maxResults: 10
+            part: "snippet,replies",
+            maxResults: 100, // API limit
+            pageToken: nextPageToken
           }
         }
       );
 
-      const comments = response.data.items?.map(item => ({
-        commentId: item.id,
-        text: item.snippet.topLevelComment.snippet.textDisplay,
-        author: item.snippet.topLevelComment.snippet.authorDisplayName,
-        likes: item.snippet.topLevelComment.snippet.likeCount,
-        publishedAt: item.snippet.topLevelComment.snippet.publishedAt
-      })) || [];
+      nextPageToken = response.data.nextPageToken;
 
-      res.json({
-        success: true,
-        total: comments.length,
-        comments
+      const items = response.data.items || [];
+
+      items.forEach(item => {
+        const top = item.snippet.topLevelComment.snippet;
+
+        const comment = {
+          commentThreadId: item.id,
+          commentId: item.snippet.topLevelComment.id,
+
+          // Text
+          textDisplay: top.textDisplay,
+          textOriginal: top.textOriginal,
+
+          // Author
+          authorName: top.authorDisplayName,
+          authorProfileImage: top.authorProfileImageUrl,
+          authorChannelId: top.authorChannelId?.value,
+          authorChannelUrl: top.authorChannelUrl,
+
+          // Meta
+          likeCount: top.likeCount,
+          publishedAt: top.publishedAt,
+          updatedAt: top.updatedAt,
+          viewerRating: top.viewerRating,
+          canReply: item.snippet.canReply,
+          totalReplyCount: item.snippet.totalReplyCount,
+          isPublic: item.snippet.isPublic,
+
+          // Replies (if any)
+          replies: item.replies?.comments?.map(reply => ({
+            replyId: reply.id,
+            textDisplay: reply.snippet.textDisplay,
+            textOriginal: reply.snippet.textOriginal,
+            authorName: reply.snippet.authorDisplayName,
+            authorChannelId: reply.snippet.authorChannelId?.value,
+            likeCount: reply.snippet.likeCount,
+            publishedAt: reply.snippet.publishedAt
+          })) || []
+        };
+
+        allComments.push(comment);
       });
 
+    } while (nextPageToken); // paginate to get ALL comments
+
+    res.json({
+      success: true,
+      videoId,
+      totalCommentsFetched: allComments.length,
+      comments: allComments
+    });
+
+  } catch (err) {
+    console.error("YouTube API Error:", err?.response?.data || err.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch comments",
+      error: err?.response?.data || err.message
+    });
+  }
+}
+,
+   async getUserProfile(req, res) {
+    try {
+      console.log("getUserProfile is called ,following data is being passesd", JSON.stringify(req.user) );     
+      const {id,  email ,given_name , family_name ,picture } = req.user ; 
+      res.json({id,  email ,given_name , family_name ,picture });
+   
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }
+
 };
 
 export default youtubeController;

@@ -5,12 +5,13 @@ import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcryptjs";
 import { runSql } from "./db.js";
 
+
 // ------------------- LOCAL STRATEGY -------------------
 /* passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
       const { success, result } = await runSql(
-        "SELECT * FROM users WHERE username = ?",
+        "SELECT * FROM USERS WHERE username = ?",
         [username]
       );
 
@@ -54,31 +55,36 @@ passport.use(
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
+        console.log("Google profile info:", JSON.stringify(profile));
         const googleId = profile.id;
-        const email = profile.emails?.[0]?.value || null;
-
-        // Check if user exists
+        const email = profile._json.email || null;
+        const given_name = profile._json.given_name || null;
+        const family_name = profile._json.family_name || null;
+        const picture = profile._json.picture || null;
+  
+              // Check if user exists
         const existing = await runSql(
-          "SELECT * FROM users WHERE google_id = ?",
+          "SELECT * FROM USERS WHERE google_id = ?",
           [googleId]
         );
-
+    console.log("Google profile info: is below");
+    console.log(profile);
         if (existing.result.length > 0) {
           await runSql(
-            "UPDATE users SET access_token = ?, refresh_token = ? WHERE google_id = ?",
-            [accessToken, refreshToken, googleId]
+            "UPDATE USERS SET access_token = ?, refresh_token = ?, email = ?, given_name = ?, family_name = ?, picture = ? WHERE google_id = ?",
+            [accessToken, refreshToken, email, given_name, family_name, picture, googleId]
           );
           return done(null, existing.result[0]);
         }
 
         // Insert new user
         await runSql(
-          "INSERT INTO users (username, google_id, access_token, refresh_token) VALUES (?, ?, ?, ?)",
-          [email, googleId, accessToken, refreshToken]
+          "INSERT INTO USERS (username, google_id, access_token, refresh_token, email, given_name, family_name, picture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [email, googleId, accessToken, refreshToken, email, given_name, family_name, picture]
         );
 
         const created = await runSql(
-          "SELECT * FROM users WHERE google_id = ?",
+          "SELECT * FROM USERS WHERE google_id = ?",
           [googleId]
         );
         console.log("user should have been added to database");
@@ -95,22 +101,32 @@ passport.use(
 // ------------------- JWT STRATEGY -------------------
 
 const jwtOptions = {
+  // ExtractJwt.fromAuthHeaderAsBearerToken()
+  //It extracts the JWT from this HTTP header named Authorization
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   secretOrKey: process.env.JWT_SECRET || "JWT_SECRET",
 };
 
+
 passport.use(
-  new JwtStrategy(jwtOptions, async (payload, done) => {
+  // this strategy triggers when below line is called 
+  // passport.authenticate('jwt', { session: false })(req, res, next);
+  new JwtStrategy(jwtOptions, 
+    // payload is decoded JWT. JWT is already verified at this point and 
+    async (payload, done) => {
     try {
       const { success, result } = await runSql(
-        "SELECT * FROM users WHERE id = ?",
+        "SELECT * FROM USERS WHERE id = ?",
         [payload.id]
       );
-
+        console.log("inside jwt authentication strategy of passport.js ");
       if (!success || result.length === 0) {
+        // false → authentication fails → 401 Unauthorized
         return done(null, false);
       }
-
+      
+      console.log("inside jwt authentication strategy of passport.js ,following should be in req.user ", result[0]);
+      // below line assigns req.user = result[0];
       return done(null, result[0]);
     } catch (err) {
       return done(err, false);
@@ -126,7 +142,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const data = await runSql("SELECT * FROM users WHERE id = ?", [id]);
+    const data = await runSql("SELECT * FROM USERS WHERE id = ?", [id]);
     const rows = data.result || [];
     done(null, rows[0]);
   } catch (err) {

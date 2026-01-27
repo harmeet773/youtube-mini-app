@@ -43,7 +43,7 @@ async function getVideoDetails(videoId) {
         videoId: videoId,
         maxResults: 100,
         key: API_KEY
-      }
+      }       
     });
     return {
       video: videoRes.data,

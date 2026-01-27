@@ -5,8 +5,11 @@ import passport from "passport";
 import { runSql } from "../config/db.js";
 import homeController from '../controllers/homeController.js';       
 import crypto from "crypto";
+import { getDynamicCallbackURL } from '../config/passport.js';
+import { generateToken } from '../config/jwt.js';
+import { Json } from "sequelize/lib/utils";
 import jwt from "jsonwebtoken";
-import {getDynamicCallbackURL} from '../config/passport.js';
+
 const router = express.Router();
 
 // -------------------- STATE ENCRYPTION SETUP --------------------
@@ -62,14 +65,11 @@ function decryptState(state) {
 // -------------------- Existing Routes --------------------
 
 // Home page
-router.get('/', homeController.index );
+router.get('/', homeController.index);
 
-router.get('/serverStatus', homeController.serverStatus );
-  
+router.get('/serverStatus', homeController.serverStatus);
 
-router.post("/reply-comment", homeController.addReply );
-
-
+router.post("/reply-comment", homeController.addReply);
 
 // Protected route
 //router.get("/dashboard", ensureAuth, homeController.index );
@@ -91,14 +91,10 @@ function ensureAuth(req, res, next) {
 
 // Redirect to Google for authentication
 router.get("/auth/google", (req, res, next) => {
-  const origin = req.headers.origin;
   console.log("on /auth/google page");
 
-  // Validate frontend origin
-  const frontend =
-    ALLOWED_FRONTENDS.includes(origin)
-      ? origin
-      : "http://localhost:5173";
+  // Frontend is already resolved by global frontendResolver middleware
+  const frontend = req.frontend;
 
   // Dynamically build callback URL using query params method
   const protocol = req.headers["x-forwarded-proto"] || req.protocol;
@@ -132,7 +128,10 @@ router.get(
   "/auth/google/callback",
   (req, res, next) => {
     const callbackURL = getDynamicCallbackURL(req);
-    passport.authenticate("google", { failureRedirect: "/login", callbackURL })(req, res, next);
+    passport.authenticate(
+      "google",
+      { failureRedirect: "/login", callbackURL }
+    )(req, res, next);
   },
   (req, res) => {
     try {
@@ -146,19 +145,39 @@ router.get(
       const frontend =
         ALLOWED_FRONTENDS.includes(stateData.redirect)
           ? stateData.redirect
-          : "http://localhost:5173";
+          : req.frontend;
 
-      // Create your own JWT
-      const token = jwt.sign(req.user, "JWT_SECRET", {
-        expiresIn: "1d",
-      });
-   
+      // Generate JWT token for frontend to use with subsequent requests
+      // The JWT will be verified by passport-jwt strategy in middleware
+      const token = jwt.sign(
+        {
+          id: req.user.id,
+          email: req.user.email,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
       console.log(
         "here on the /auth/google/callback 2 , frontend is ",
         frontend
       );
 
+      const payload = {
+        email: req.user.email,
+        given_name: req.user.given_name,
+        family_name: req.user.family_name,
+        picture: req.user.picture
+      };
+
       // Redirect back to frontend with token
+      console.log(
+        "sending following data to frontend here",
+        JSON.stringify({ token: token, user: payload })
+      );
+
+      // res.json({ token: token, user: payload });
+
       res.redirect(
         `${frontend}/oauth-success?token=${token}`
       );
@@ -168,8 +187,7 @@ router.get(
       );
     } catch (err) {
       console.error("Invalid or tampered OAuth state", err);
-      
-      res.redirect(`${frontend}`);
+      res.redirect(req.frontend);
     }
   }
 );
@@ -178,22 +196,5 @@ router.get("/about", homeController.about);
 router.post("/delete-comment", homeController.deleteComment);
 router.post("/edit-comment", homeController.editComment);
 router.post("/add-comment", homeController.addComment);
-
-// Middleware to check for token in requests and authenticate user via passport.js if token is present
-router.use((req, res, next) => {
-  const token = req.headers['authorization'];
-  if (token) {
-    console.log('Frontend is sending token , deel');         
-
-    try {
-    passport.authenticate('jwt', { session: false })(req, res, next);
-    } catch (err) {
-      console.error("JWT Authentication Error:", err);
-      res.status(401).json({ error: "Invalid token" });
-    }
-  } else {
-    next();
-  }
-});
 
 export default router;
