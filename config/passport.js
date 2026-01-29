@@ -113,7 +113,7 @@ passport.use(
     // payload is decoded JWT. JWT is already verified at this point and 
     async (payload, done) => {
     try {
-      const user = await User.findById(payload.id);
+      const user = await User.findById(payload.id || payload._id);
       
         console.log("inside jwt authentication strategy of passport.js ");
       if (!user) {
@@ -133,7 +133,7 @@ passport.use(
 // ------------------- SESSION HANDLING -------------------
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  done(null, user.id || user._id);
 });
 
 passport.deserializeUser(async (id, done) => {

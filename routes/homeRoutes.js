@@ -120,7 +120,7 @@ router.get(
       // The JWT will be verified by passport-jwt strategy in middleware
       const token = jwt.sign(
         {
-          id: req.user.id,
+          id: req.user.id || req.user._id,
           email: req.user.email,
         },
         process.env.JWT_SECRET,

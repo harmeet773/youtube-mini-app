@@ -1,4 +1,4 @@
-import connectDB from "./db.js";
+import connectDB, { USE_LOCAL_SQL, USE_REMOTE_SQL, USE_LOCAL_MONGODB } from "./db.js";
 import User from "../models/User.js";
 import { runSql } from "./db.js";
 
@@ -8,7 +8,6 @@ import { runSql } from "./db.js";
 async function initMongoDB() {
   try {
     await connectDB();
-
 
     const count = await User.countDocuments();
     console.log("MongoDB connection verified. User count:", count);
@@ -59,14 +58,9 @@ async function initSQL() {
    Bootstrapping
 ======================= */
 (async () => {
-  if (process.env.USE_REMOTE_MONGODB === "true") {
+  if (USE_LOCAL_MONGODB) {
     await initMongoDB();
-  }
-
-  if (
-      process.env.USE_LOCAL_SQL === "true" ||
-      process.env.USE_REMOTE_SQL === "true"
-  ) {
+  } else if (USE_LOCAL_SQL || USE_REMOTE_SQL) {
     await initSQL();
   }
 })();

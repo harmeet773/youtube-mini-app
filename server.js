@@ -6,6 +6,7 @@ import path from 'path';
 import youtubeRoutes from './routes/youtubeRoutes.js';
 import authRoutes from './routes/homeRoutes.js';
 import './config/db.js';           // <-- Keep SQL connection
+import connectDB from './config/db.js';
 import './config/passport.js';      // <-- loads our raw SQL passport config
 import './config/initTables.js';    // <-- check MongoDB connection and ensure user model is ready
 import { fileURLToPath } from 'url';
@@ -15,6 +16,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+
+// Initialize Database (MongoDB if flag is set)
+connectDB();
 
 // =============================   
 // Session middleware
