@@ -121,7 +121,7 @@ passport.use(
         return done(null, false);
       }
       
-      console.log("inside jwt authentication strategy of passport.js ,following should be in req.user ", user);
+      console.log("inside jwt authentication strategy of passport.js , user found ");
       // below line assigns req.user = user;
       return done(null, user);
     } catch (err) {
