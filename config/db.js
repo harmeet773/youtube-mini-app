@@ -1,11 +1,13 @@
 // db.js
 import 'dotenv/config';
 import { Sequelize } from 'sequelize';
+import mongoose from 'mongoose';
+
 // Sequelize is an ORM  , it help to work with  SQL databases .
 //  We need to provide dialect so that Sequelize knows with with DB we are working with so it can load necesarry drivers  and interact with DB accordingly .
 
 let sequelize;
-if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequelize(   
+if (process.env.USE_LOCAL_SQL === "true"){ sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASS,
@@ -15,7 +17,7 @@ if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequ
      port: process.env.DB_PORT,
   }   
 );   
-}else{
+}if(process.env.USE_REMOTE_MONGODB === "true"){
  sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -35,7 +37,21 @@ if (process.env.Project_Host_Environment_Local === "true"){ sequelize = new Sequ
 
     logging: false,
   }
-);} 
+);}
+let connectDB;
+if(process.env.USE_REMOTE_MONGODB === "true"){
+     connectDB = async () => {
+        try {
+            const conn = await mongoose.connect(process.env.MONGODB_CONNECTION_STRING);
+            console.log(`MongoDB Connected: ${conn.connection.host}`);
+        } catch (error) {
+            console.error(`Error: ${error.message}`);
+            process.exit(1);
+        }
+    };
+
+
+}
 async function runSql(sql, params = []) {
   try {
     const [result] = await sequelize.query(sql, {
@@ -52,4 +68,5 @@ sequelize
   .then(() => console.log("Database connection successful"))
   .catch((err) => console.error("DB error:", err));
 
-export { sequelize, runSql };
+export { sequelize, runSql ,  };
+export default connectDB;

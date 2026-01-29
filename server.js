@@ -5,8 +5,9 @@ import passport from 'passport';
 import path from 'path';
 import youtubeRoutes from './routes/youtubeRoutes.js';
 import authRoutes from './routes/homeRoutes.js';
+import './config/db.js';           // <-- Keep SQL connection
 import './config/passport.js';      // <-- loads our raw SQL passport config
-import './config/initTables.js';    // <-- creates MySQL tables from code
+import './config/initTables.js';    // <-- check MongoDB connection and ensure user model is ready
 import { fileURLToPath } from 'url';
 import { frontendResolver } from './config/frontendResolver.js';
 import cors from 'cors';
