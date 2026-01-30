@@ -15,7 +15,7 @@ import cors from 'cors';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim()) : [];
 
 // Initialize Database (MongoDB if flag is set)
 connectDB();
@@ -80,7 +80,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // =============================
 // need to documention of below lines.
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:10000");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:10000 https://youtube-mini-app-p93f.onrender.com https://backend-of-youtube-mini-app-1.onrender.com");
   next();
 });
 
