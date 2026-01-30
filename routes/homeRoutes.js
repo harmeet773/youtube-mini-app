@@ -146,10 +146,18 @@ router.get(
       );
 
       // res.json({ token: token, user: payload });
-
-      res.redirect(
-        `${frontend}/oauth-success?token=${token}`
-      );
+      if(process.env.USE_LOCAL_SQL === 'true'){
+        console.log("Using local frontend for redirect");
+        res.redirect(
+          `${process.env.LOCAL_FRONTEND}/oauth-success?token=${token}`
+        );
+        
+      } else {
+        console.log("Using public frontend for redirect");
+        res.redirect(
+          `${process.env.PUBLIC_FRONTEND}/oauth-success?token=${token}`
+        );
+      }
 
       console.log(
         "here on the /auth/google/callback   ,after redirecting to frontend"
