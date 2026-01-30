@@ -80,7 +80,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // =============================
 // need to documention of below lines.
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:10000 https://youtube-mini-app-p93f.onrender.com https://backend-of-youtube-mini-app-1.onrender.com");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:10000 https://youtube-mini-app-p93f.onrender.com https://backend-of-youtube-mini-app-1.onrender.com https://backend-of-youtube-mini-app-use-it.onrender.com");
   next();
 });
 
