@@ -12,10 +12,9 @@ const STATE_SECRET = process.env.STATE_SECRET || "STATE_ENCRYPTION_SECRET_32";
 const ALGORITHM = "aes-256-gcm";
 
 // Allowed frontend origins (security)
-const ALLOWED_FRONTENDS = [
-  "http://localhost:5173",
-  "https://youtube-mini-app-p93f.onrender.com"
-];
+const ALLOWED_FRONTENDS = process.env.ALLOWED_FRONTENDS 
+  ? process.env.ALLOWED_FRONTENDS.split(",").map(url => url.trim())
+  : ["http://localhost:5173"];
 
 // Encrypt OAuth state
 function encryptState(data) {
