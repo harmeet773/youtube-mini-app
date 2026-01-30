@@ -110,11 +110,12 @@ router.get(
       const stateData = decryptState(req.query.state);
       console.log("this is stateData", stateData);
 
-      // Validate frontend again (anti open-redirect)
+// Validate frontend again (anti open-redirect)
+      // Note: We use the same ALLOWED_FRONTENDS list as in frontendResolver
       const frontend =
         ALLOWED_FRONTENDS.includes(stateData.redirect)
           ? stateData.redirect
-          : req.frontend;
+          : (ALLOWED_FRONTENDS.includes(req.frontend) ? req.frontend : ALLOWED_FRONTENDS[0]);
 
       // Generate JWT token for frontend to use with subsequent requests
       // The JWT will be verified by passport-jwt strategy in middleware

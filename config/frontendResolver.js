@@ -2,7 +2,7 @@
 
 const ALLOWED_FRONTENDS = [
   "http://localhost:5173",
-  // "https://yourdomain.com"
+  "https://youtube-mini-app-p93f.onrender.com"
 ];
 
 export function frontendResolver(req, res, next) {
