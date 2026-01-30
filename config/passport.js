@@ -64,6 +64,7 @@ passport.use(
         console.log(profile);
 
         if (user) {
+          console.log("Existing user found during Google auth:", user.id || user._id);
           user.access_token = accessToken;
           user.refresh_token = refreshToken;
           user.email = email;
@@ -71,10 +72,12 @@ passport.use(
           user.family_name = family_name;
           user.picture = picture;
           await user.save();
+          console.log("Existing user updated and saved:", user.id || user._id);
           return done(null, user);
         }
 
         // Insert new user
+        console.log("Creating new user for Google ID:", googleId);
         user = new User({
           username: email,
           google_id: googleId,
@@ -87,9 +90,10 @@ passport.use(
         });
         await user.save();
 
-        console.log("user should have been added to database");
+        console.log("New user added to database, ID:", user.id || user._id);
         return done(null, user);
       } catch (err) {
+        console.error("Error in Google Strategy:", err);
         return done(err);
       }
     }
@@ -133,14 +137,26 @@ passport.use(
 // ------------------- SESSION HANDLING -------------------
 
 passport.serializeUser((user, done) => {
-  done(null, user.id || user._id);
+  console.log("Serializing user:", user);
+  const id = user.id || user._id;
+  console.log("Serialized ID:", id);
+  if (id === undefined || id === null) {
+    console.error("Failed to find ID for user serialization!");
+    return done(new Error("Failed to serialize user: No ID found"));
+  }
+  done(null, id);
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
+    console.log("Deserializing user with ID:", id);
     const user = await User.findById(id);
+    if (!user) {
+      console.warn("Deserialization: User not found for ID:", id);
+    }
     done(null, user);
   } catch (err) {
+    console.error("Deserialization error:", err);
     done(err);
   }
 });

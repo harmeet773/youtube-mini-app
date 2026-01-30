@@ -388,7 +388,8 @@ const youtubeController = {
 
   async getUserProfile(req, res) {
     try {
-      console.log("getUserProfile is called ,following data is being passesd", JSON.stringify(req.user) );
+      console.log("getUserProfile is called ,following data is being passesd" );
+      //console.log(JSON.stringify(req.user));
       const {id,  email ,given_name , family_name ,picture } = req.user ;
       res.json({id,  email ,given_name , family_name ,picture });
 

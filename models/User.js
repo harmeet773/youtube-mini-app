@@ -48,9 +48,12 @@ if (USE_LOCAL_MONGODB) {
       const response = await runSql(sql, params);
       if (response.success && response.result.length > 0) {
         const userData = response.result[0];
+        console.log("SQL findOne found user data:", userData);
         const userObj = {
           ...userData,
+          id: userData.id,
           save: async function() {
+            console.log("userObj.save() (from findOne) called for ID:", this.id);
             const updates = [];
             const updateParams = [];
             for (const k in this) {
@@ -61,7 +64,10 @@ if (USE_LOCAL_MONGODB) {
             }
             updateParams.push(this.id);
             const updateSql = `UPDATE USERS SET ${updates.join(', ')} WHERE id = ?`;
-            await runSql(updateSql, updateParams);
+            const updateResponse = await runSql(updateSql, updateParams);
+            if (!updateResponse.success) {
+                console.error("userObj.save() (from findOne) UPDATE failed:", updateResponse.error);
+            }
           }
         };
         return userObj;
@@ -73,9 +79,13 @@ if (USE_LOCAL_MONGODB) {
       const response = await runSql(sql, [id]);
       if (response.success && response.result.length > 0) {
         const userData = response.result[0];
+        console.log("SQL findById found user data:");
+        // console.log(userData);
         const userObj = {
           ...userData,
+          id: userData.id,
           save: async function() {
+            console.log("userObj.save() (from findById) called for ID:", this.id);
             const updates = [];
             const updateParams = [];
             for (const k in this) {
@@ -86,7 +96,10 @@ if (USE_LOCAL_MONGODB) {
             }
             updateParams.push(this.id);
             const updateSql = `UPDATE USERS SET ${updates.join(', ')} WHERE id = ?`;
-            await runSql(updateSql, updateParams);
+            const updateResponse = await runSql(updateSql, updateParams);
+            if (!updateResponse.success) {
+                console.error("userObj.save() (from findById) UPDATE failed:", updateResponse.error);
+            }
           }
         };
         return userObj;
@@ -117,6 +130,7 @@ if (USE_LOCAL_MONGODB) {
     Object.assign(this, data);
   };
   SQLUser.prototype.save = async function() {
+    console.log("SQLUser.save() called for:", this);
     if (this.id) {
         const updates = [];
         const updateParams = [];
@@ -143,7 +157,9 @@ if (USE_LOCAL_MONGODB) {
         const response = await runSql(sql, values);
         if (response.success) {
             this.id = response.result.insertId;
+            console.log("SQLUser.save() inserted new user, ID:", this.id);
         } else {
+            console.error("SQLUser.save() INSERT failed:", response.error);
             throw new Error("Failed to save user in SQL: " + JSON.stringify(response.error));
         }
     }
