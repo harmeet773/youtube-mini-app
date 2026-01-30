@@ -14,7 +14,7 @@ const ALGORITHM = "aes-256-gcm";
 // Allowed frontend origins (security)
 const ALLOWED_FRONTENDS = [
   "http://localhost:5173",
-  // "https://yourdomain.com"
+  "https://youtube-mini-app-p93f.onrender.com"
 ];
 
 // Encrypt OAuth state
