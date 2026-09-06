@@ -75,11 +75,13 @@ let connectDB = async () => {
 
       return conn;
     } catch (error) {
-      console.error(`Error: ${error.message}`);
+      console.error(`MongoDB connection error: ${error.stack || error.message}`);
       console.log(
-        "MongoDB connection unsuccessful. Please make sure MongoDB is running."
+        "MongoDB connection unsuccessful. Please check your MONGODB_CONNECTION_STRING and network connectivity."
       );
-      process.exit(1);
+      // Not exiting process to allow server to potentially serve other parts or be debugged
+      // process.exit(1); 
+      return null;
     }
   }
 };

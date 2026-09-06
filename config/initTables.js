@@ -7,13 +7,16 @@ import { runSql } from "./db.js";
 ======================= */
 async function initMongoDB() {
   try {
-    await connectDB();
+    const conn = await connectDB();
+    if (!conn) {
+      console.error("MongoDB connection could not be established. Skipping MongoDB initialization.");
+      return;
+    }
 
     const count = await User.countDocuments();
     console.log("MongoDB connection verified. User count:", count);
   } catch (err) {
     console.error("MongoDB initialization failed:", err);
-    process.exit(1);
   }
 }
 
